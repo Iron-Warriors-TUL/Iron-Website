@@ -1,14 +1,20 @@
 import { Navbar } from '@/components/site/navbar'
 import { Footer } from '@/components/site/footer'
+import { BackToTop } from '@/components/site/back-to-top'
+import { PageMotion } from '@/components/site/page-motion'
 
-export const dynamic = 'force-dynamic'
+// Strona jest statycznie generowana, a treść odświeżana przez revalidatePath()
+// w akcjach panelu CMS. Dzięki temu nie każde wejście uderza do bazy.
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Navbar />
-      <main>{children}</main>
+      <main className="pt-[100px]">
+        <PageMotion>{children}</PageMotion>
+      </main>
       <Footer />
+      <BackToTop />
     </>
   )
 }

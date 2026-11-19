@@ -1,0 +1,90 @@
+'use client'
+
+import { useState, type MouseEvent } from 'react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { ChevronDown } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import type { NavNode } from '@/lib/data'
+
+const normalize = (value: string) => value.replace(/\/+$/, '') || '/'
+
+function isActive(pathname: string, href: string) {
+  const current = normalize(pathname)
+  const target = normalize(href)
+  if (target === '/') return current === '/'
+  return current === target || current.startsWith(`${target}/`)
+}
+
+export function DesktopNav({ nav }: { nav: NavNode[] }) {
+  const pathname = usePathname()
+  const [openIndex, setOpenIndex] = useState<number | null>(null)
+
+  const onLinkClick = (href: string) => (event: MouseEvent<HTMLAnchorElement>) => {
+    setOpenIndex(null)
+    if (normalize(href) === normalize(pathname)) {
+      event.preventDefault()
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+  }
+
+  return (
+    <nav aria-label="Główna nawigacja" className="hidden h-full w-full min-[768px]:flex">
+      <ul className="flex w-full flex-wrap items-stretch justify-end">
+        {nav.map((item, index) => {
+          const active = isActive(pathname, item.href)
+          const childActive = item.children.some((child) => isActive(pathname, child.href))
+          const labelClass = cn(
+            'flex h-[42.8px] items-center px-[15px] font-heading text-[12.8px] font-semibold uppercase text-white transition-colors duration-300 hover:text-[#f08400] min-[1025px]:h-[46px] min-[1025px]:text-base',
+            (active || childActive) && '!text-primary',
+          )
+
+          return (
+            <li
+              key={item.id}
+              className={cn('relative', item.isButton && 'ml-[15px]')}
+              onMouseEnter={() => {
+                if (!item.isButton && item.children.length > 0) setOpenIndex(index)
+              }}
+              onMouseLeave={() => setOpenIndex((current) => (current === index ? null : current))}
+            >
+              {item.isButton ? (
+                <Link
+                  href={item.href}
+                  onClick={onLinkClick(item.href)}
+                  className={cn(
+                    labelClass,
+                    'h-[42.8px] w-[127.3px] justify-center rounded-[3px] bg-primary px-0 font-bold text-white hover:bg-[#7a7a7a] hover:text-white min-[1025px]:h-[43px] min-[1025px]:w-[174.5px] min-[1025px]:px-[30px]',
+                  )}
+                >
+                  {item.label}
+                </Link>
+              ) : (
+                <Link href={item.href} onClick={onLinkClick(item.href)} className={labelClass}>
+                  {item.label}
+                  {item.children.length > 0 && <ChevronDown className="ml-1 size-3.5" aria-hidden="true" />}
+                </Link>
+              )}
+
+              {!item.isButton && item.children.length > 0 && openIndex === index && (
+                <ul className="absolute left-0 top-full z-[9999] w-[220px] border-t border-[#c4c4c4] bg-white py-1 shadow-none">
+                  {item.children.map((child) => (
+                    <li key={child.id} className="border-b border-[#c4c4c4] last:border-b-0">
+                      <Link
+                        href={child.href}
+                        onClick={onLinkClick(child.href)}
+                        className="block px-[15px] py-2.5 font-heading text-[12.8px] text-black transition-colors hover:text-[#f08400] min-[1025px]:text-sm"
+                      >
+                        {child.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          )
+        })}
+      </ul>
+    </nav>
+  )
+}

@@ -2,14 +2,13 @@ import 'server-only'
 import { and, asc, desc, eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { navItems, posts, projects, vehicles, type NavItem } from '@/lib/db/schema'
+import { buildNavTree } from '@/lib/navigation'
 
-export type NavNode = NavItem & { children: NavItem[] }
+export type NavNode = ReturnType<typeof buildNavTree<NavItem>>[number]
 
 export async function getNavTree(): Promise<NavNode[]> {
   const items = await db.select().from(navItems).orderBy(asc(navItems.sortOrder), asc(navItems.id))
-  return items
-    .filter((i) => i.parentId === null)
-    .map((parent) => ({ ...parent, children: items.filter((c) => c.parentId === parent.id) }))
+  return buildNavTree(items)
 }
 
 export function getVehicles() {

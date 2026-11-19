@@ -1,18 +1,19 @@
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { AnimatedNumber } from './animated-number'
+import { Carousel, type CarouselProps } from './carousel'
+import { FillImage, FixedImage } from './smart-image'
+import { YouTubeBackdrop } from './youtube-video'
+import { getContent } from '@/lib/content'
 
 export function PageHeader({ title, subtitle, image }: { title: string; subtitle?: string; image?: string }) {
   return (
-    <section className="relative isolate flex min-h-64 items-center overflow-hidden">
-      <img
-        src={image ?? '/images/team-2.jpg'}
-        alt=""
-        className="absolute inset-0 -z-10 size-full object-cover opacity-30"
-      />
-      <div className="absolute inset-0 -z-10 bg-gradient-to-t from-background via-background/60 to-transparent" />
-      <div className="mx-auto w-full max-w-6xl px-4 py-16 md:px-6">
-        <h1 className="text-balance text-4xl font-bold uppercase tracking-tight md:text-6xl">{title}</h1>
-        {subtitle && <p className="mt-3 max-w-2xl text-pretty text-lg text-muted-foreground">{subtitle}</p>}
+    <section className="relative isolate flex min-h-72 items-center overflow-hidden bg-header">
+      <FillImage src={image ?? '/images/eco-arrow-3-3.jpg'} alt="" priority sizes="100vw" className="-z-10 opacity-40" />
+      <div className="absolute inset-0 -z-10 bg-white/92" />
+      <div className="container-iw py-14">
+        <h1 data-reveal className="text-balance text-4xl font-semibold uppercase text-heading md:text-[59px] md:leading-[59px]">{title}</h1>
+        {subtitle && <p data-reveal className="mt-4 max-w-3xl text-pretty text-[15px] leading-[25.2px] text-black">{subtitle}</p>}
       </div>
     </section>
   )
@@ -20,12 +21,12 @@ export function PageHeader({ title, subtitle, image }: { title: string; subtitle
 
 export function Paragraphs({ text, className }: { text: string; className?: string }) {
   return (
-    <div className={cn('flex flex-col gap-4 leading-relaxed text-muted-foreground', className)}>
+    <div className={cn('flex flex-col gap-5 text-justify text-[15px] leading-[25.2px] text-black', className)}>
       {text
         .split(/\n{2,}/)
         .filter(Boolean)
         .map((p, i) => (
-          <p key={i} className="text-pretty">
+          <p key={i} data-reveal className="text-pretty">
             {p}
           </p>
         ))}
@@ -33,46 +34,117 @@ export function Paragraphs({ text, className }: { text: string; className?: stri
   )
 }
 
-export function OrangeLink({ href, children }: { href: string; children: React.ReactNode }) {
+export function OrangeLink({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) {
   return (
     <Link
+      data-reveal
       href={href}
-      className="inline-flex items-center gap-2 rounded-sm bg-primary px-6 py-3 text-sm font-bold uppercase tracking-wide text-primary-foreground transition-opacity hover:opacity-90"
+      className={cn(
+        'inline-flex items-center justify-center rounded-[5px] bg-primary px-7 py-3 text-base font-semibold text-white transition-opacity hover:opacity-90',
+        className,
+      )}
     >
       {children}
     </Link>
   )
 }
 
-export function JoinCta() {
+export async function JoinCta() {
+  const cta = await getContent('cta')
+  const text = (name: string) => String(cta[name] ?? '')
   return (
-    <section className="bg-brand-maroon py-24 text-center">
-      <h2 className="text-balance text-4xl font-bold md:text-6xl">Dołącz do nas!</h2>
-      <div className="mt-10 flex flex-wrap justify-center gap-4 px-4">
-        <Link href="/kontakt" className="min-w-48 border-2 border-foreground px-8 py-3 font-bold transition-colors hover:bg-foreground hover:text-brand-maroon">
-          Zostań członkiem
-        </Link>
-        <Link href="/kontakt" className="min-w-48 border-2 border-foreground px-8 py-3 font-bold transition-colors hover:bg-foreground hover:text-brand-maroon">
-          Zostań partnerem
-        </Link>
+    <section className="relative isolate flex h-[467px] items-center justify-center overflow-hidden">
+      <YouTubeBackdrop
+        videoId={text('videoId')}
+        start={Number(cta.start) || 0}
+        end={Number(cta.end) || 0}
+        poster={text('poster')}
+      />
+      <div className="absolute inset-0 -z-0 bg-[#1e1a20]/75" />
+      <div className="relative z-10 flex w-full flex-col items-center px-4 text-center">
+        <h2 data-reveal className="text-balance text-center text-[38px] font-semibold leading-tight text-white md:text-[65px] md:leading-[65px]">
+          {text('heading')}
+        </h2>
+        <div data-reveal className="mt-11 flex flex-wrap justify-center gap-5 px-4">
+          <Link
+            href={text('memberHref')}
+            className="inline-flex h-[62px] w-[240px] items-center justify-center rounded-[5px] border-2 border-white text-lg font-bold text-white transition-colors hover:bg-white hover:text-heading"
+          >
+            {text('memberLabel')}
+          </Link>
+          <Link
+            href={text('partnerHref')}
+            className="inline-flex h-[62px] w-[240px] items-center justify-center rounded-[5px] border-2 border-white text-lg font-bold text-white transition-colors hover:bg-white hover:text-heading"
+          >
+            {text('partnerLabel')}
+          </Link>
+        </div>
       </div>
     </section>
   )
 }
 
-export function StatGrid({ stats }: { stats: { label: string; value: string; unit: string }[] }) {
+export type StatItem = { label: string; value: string; unit?: string }
+
+export function StatGrid({ stats, className }: { stats: StatItem[]; className?: string }) {
   if (stats.length === 0) return null
   return (
-    <dl className="grid grid-cols-2 gap-6 md:grid-cols-4">
-      {stats.map((s) => (
-        <div key={s.label} className="flex flex-col-reverse items-start gap-1 border-l-2 border-primary pl-4">
-          <dt className="text-sm text-muted-foreground">{s.label}</dt>
-          <dd className="flex items-start gap-1 text-4xl font-bold md:text-5xl">
-            {s.value}
-            <span className="pt-1 text-base font-semibold text-primary">{s.unit}</span>
+    <dl className={cn('grid grid-cols-1 gap-x-5 gap-y-8 text-center sm:grid-cols-2 lg:grid-cols-4', className)}>
+      {stats.map((stat) => (
+        <div key={stat.label} data-reveal className="flex flex-col items-center">
+          <dt className="min-h-[48px] text-[19px] leading-[47.5px] text-[#868990]">{stat.label}</dt>
+          <dd className="flex items-baseline justify-center text-[52px] font-semibold leading-[69px] text-[#868990] md:text-[69px]">
+            <AnimatedNumber value={stat.value} />
+            {stat.unit && <span className="ml-1 text-[28px] font-semibold">{stat.unit}</span>}
           </dd>
         </div>
       ))}
     </dl>
+  )
+}
+
+type GalleryProps = Pick<CarouselProps, 'effect' | 'className' | 'imageClassName' | 'sizes' | 'showArrows' | 'forceControls'> & {
+  images: string[]
+  alt: string
+}
+
+export function Gallery({ images, alt, effect = 'fade', className, imageClassName, sizes, showArrows, forceControls }: GalleryProps) {
+  if (images.length === 0) return null
+  return (
+    <Carousel
+      images={images}
+      alt={alt}
+      effect={effect}
+      className={className}
+      imageClassName={imageClassName}
+      sizes={sizes}
+      showArrows={showArrows}
+      forceControls={forceControls}
+    />
+  )
+}
+
+export function MemberGrid({ members }: { members: { name: string; role?: string; photo?: string }[] }) {
+  return (
+    <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+      {members.map((member) => (
+        <div key={member.name} data-reveal className="flex flex-col items-center gap-3 text-center">
+          <div className="relative aspect-square w-full overflow-hidden rounded-full bg-muted">
+            <FixedImage
+              src={member.photo ?? '/images/avatar-placeholder.webp'}
+              alt={member.name}
+              width={300}
+              height={300}
+              sizes="(min-width: 768px) 16vw, 45vw"
+              className="h-full w-full object-cover"
+            />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-heading">{member.name}</p>
+            {member.role && <p className="mt-1 text-xs leading-snug text-foreground">{member.role}</p>}
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }

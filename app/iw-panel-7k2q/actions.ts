@@ -1,13 +1,19 @@
 'use server'
 
+import { mkdir, writeFile } from 'node:fs/promises'
+import { join } from 'node:path'
+import { randomUUID } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { put } from '@vercel/blob'
 import { z } from 'zod'
 import { db } from '@/lib/db'
-import { navItems, posts, projects, vehicles } from '@/lib/db/schema'
+import { navItems, posts, projects, siteContent, vehicles } from '@/lib/db/schema'
+import { contentAreaByKey, type Field } from '@/lib/content-registry'
 import { ADMIN_PATH, requireAdmin } from '@/lib/admin'
+import { collectDescendantIds, validateNavParent } from '@/lib/navigation'
+import { hasValidImageSignature, imageExtension, MAX_IMAGE_BYTES } from '@/lib/upload'
 
 export type FormState = { error?: string; ok?: boolean }
 
@@ -92,9 +98,12 @@ export async function saveNavItem(_: FormState, fd: FormData): Promise<FormState
       isButton: bool(fd, 'isButton'),
     })
     const rawId = s(fd, 'id')
+    const itemId = rawId ? id.parse(rawId) : 0
+    const allItems = await db.select({ id: navItems.id, parentId: navItems.parentId }).from(navItems)
+    const navError = validateNavParent(allItems, itemId, data.parentId)
+    if (navError) return { error: navError }
+
     if (rawId) {
-      const itemId = id.parse(rawId)
-      if (data.parentId === itemId) return { error: 'Element nie może być swoim rodzicem.' }
       await db.update(navItems).set(data).where(eq(navItems.id, itemId))
     } else {
       await db.insert(navItems).values(data)
@@ -109,8 +118,9 @@ export async function saveNavItem(_: FormState, fd: FormData): Promise<FormState
 export async function deleteNavItem(fd: FormData) {
   await requireAdmin()
   const itemId = id.parse(s(fd, 'id'))
-  await db.delete(navItems).where(eq(navItems.parentId, itemId))
-  await db.delete(navItems).where(eq(navItems.id, itemId))
+  const allItems = await db.select({ id: navItems.id, parentId: navItems.parentId }).from(navItems)
+  const idsToDelete = collectDescendantIds(allItems, itemId)
+  await db.delete(navItems).where(inArray(navItems.id, idsToDelete))
   refresh()
 }
 
@@ -192,7 +202,12 @@ export async function saveVehicle(_: FormState, fd: FormData): Promise<FormState
       }),
       specs: pipeLines(s(fd, 'specs'), 2).map(([label, value]) => ({ label, value })),
       stats: pipeLines(s(fd, 'stats'), 3).map(([label, value, unit]) => ({ label, value, unit })),
-      achievements: pipeLines(s(fd, 'achievements'), 3).map(([title, location, result]) => ({ title, location, result })),
+      achievements: pipeLines(s(fd, 'achievements'), 4).map(([title, location, result, countryCode]) => ({
+        title,
+        location,
+        result,
+        countryCode: countryCode || undefined,
+      })),
     }
     const rawId = s(fd, 'id')
     if (rawId) {
@@ -225,6 +240,8 @@ const projectSchema = z.object({
   totalValue: optStr(100),
   period: str(50),
   description: str(10000),
+  heading: str(500),
+  imageUrls: str(4000),
   sortOrder: int,
 })
 
@@ -240,6 +257,8 @@ export async function saveProject(_: FormState, fd: FormData): Promise<FormState
       totalValue: s(fd, 'totalValue'),
       period: s(fd, 'period'),
       description: s(fd, 'description'),
+      heading: s(fd, 'heading'),
+      imageUrls: s(fd, 'imageUrls'),
       sortOrder: s(fd, 'sortOrder') || '0',
     })
     const rawId = s(fd, 'id')
@@ -262,35 +281,124 @@ export async function deleteProject(fd: FormData) {
   redirect(`${ADMIN_PATH}/projekty`)
 }
 
-/* ---------- Image upload ---------- */
+/* ---------- Generyczna treść strony ---------- */
 
-const ALLOWED_TYPES: Record<string, string> = {
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-  'image/avif': 'avif',
+function parseFieldValue(field: Field, raw: FormData): unknown {
+  if (field.type === 'checkbox') return bool(raw, field.name)
+  const value = s(raw, field.name)
+  if (field.type === 'lines') {
+    return value
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(0, 200)
+      .map((line) => {
+        const cells = line.split('|').map((part) => part.trim().slice(0, 8000))
+        while (cells.length < field.columns.length) cells.push('')
+        return cells.slice(0, field.columns.length)
+      })
+  }
+  if (field.type === 'textarea') return value.slice(0, 100000)
+  if (field.type === 'url' && value && !/^https?:\/\//.test(value) && !value.startsWith('/')) {
+    throw new Error('Link musi zaczynać się od http(s):// lub /')
+  }
+  return value.slice(0, 4000)
 }
-const MAX_BYTES = 4 * 1024 * 1024
+
+export async function saveContent(_: FormState, fd: FormData): Promise<FormState> {
+  await requireAdmin()
+  try {
+    const areaKey = s(fd, 'area')
+    const entryKey = s(fd, 'entryKey')
+    const area = contentAreaByKey.get(areaKey)
+    if (!area) return { error: 'Nieznany obszar treści.' }
+    if (!entryKey || entryKey.length > 120 || !/^[a-zA-Z0-9:_/-]+$/.test(entryKey)) {
+      return { error: 'Nieprawidłowy klucz wpisu.' }
+    }
+
+    const data: Record<string, unknown> = {}
+    for (const field of area.fields) data[field.name] = parseFieldValue(field, fd)
+    const now = new Date()
+    const [existing] = await db
+      .select({ id: siteContent.id })
+      .from(siteContent)
+      .where(and(eq(siteContent.area, areaKey), eq(siteContent.entryKey, entryKey)))
+      .limit(1)
+    if (existing) {
+      await db.update(siteContent).set({ data, updatedAt: now }).where(eq(siteContent.id, existing.id))
+    } else {
+      await db.insert(siteContent).values({ area: areaKey, entryKey, data })
+    }
+  } catch (e) {
+    if (e instanceof Error && e.message.startsWith('Link musi')) return { error: e.message }
+    return fail(e)
+  }
+  refresh()
+  return { ok: true }
+}
+
+export async function addContentEntry(fd: FormData) {
+  await requireAdmin()
+  const areaKey = s(fd, 'area')
+  const entryKey = s(fd, 'entryKey').trim()
+  const area = contentAreaByKey.get(areaKey)
+  if (!area) return
+  if (!entryKey || entryKey.length > 120 || !/^[a-zA-Z0-9:_/-]+$/.test(entryKey)) return
+  await db
+    .insert(siteContent)
+    .values({ area: areaKey, entryKey, data: {} })
+    .onConflictDoNothing()
+  refresh()
+  redirect(`${ADMIN_PATH}/tresc/${areaKey}/${encodeURIComponent(entryKey)}`)
+}
+
+export async function deleteContentEntry(fd: FormData) {
+  await requireAdmin()
+  const areaKey = s(fd, 'area')
+  const entryKey = s(fd, 'entryKey')
+  if (!contentAreaByKey.has(areaKey)) return
+  await db
+    .delete(siteContent)
+    .where(and(eq(siteContent.area, areaKey), eq(siteContent.entryKey, entryKey)))
+  refresh()
+}
+
+/* ---------- Image upload ---------- */
 
 export async function uploadImage(fd: FormData): Promise<{ url?: string; error?: string }> {
   await requireAdmin()
   const file = fd.get('file')
   if (!(file instanceof File)) return { error: 'Brak pliku.' }
-  const ext = ALLOWED_TYPES[file.type]
-  if (!ext) return { error: 'Dozwolone formaty: JPG, PNG, WEBP, AVIF.' }
-  if (file.size > MAX_BYTES) return { error: 'Maksymalny rozmiar pliku to 4 MB.' }
 
-  const pathname = `cms/${crypto.randomUUID()}.${ext}`
-  try {
-    const blob = await put(pathname, file, { access: 'private', contentType: file.type })
-    return { url: `/api/media?pathname=${encodeURIComponent(blob.pathname)}` }
-  } catch {
+  const ext = imageExtension(file.type)
+  if (!ext) return { error: 'Dozwolone formaty: JPG, PNG, WEBP, AVIF.' }
+  if (file.size > MAX_IMAGE_BYTES) return { error: 'Maksymalny rozmiar pliku to 4 MB.' }
+
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  if (!hasValidImageSignature(bytes, ext)) return { error: 'Plik nie jest prawidłowym obrazem.' }
+
+  const filename = `${randomUUID()}.${ext}`
+
+  // Lokalny tryb developerski: bez tokenu Vercel Blob zapisujemy do public/uploads/.
+  // Dzięki temu panel działa w pełni także bez konta Vercel.
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
     try {
-      const blob = await put(pathname, file, { access: 'public', contentType: file.type })
-      return { url: blob.url }
+      const dir = join(process.cwd(), 'public', 'uploads')
+      await mkdir(dir, { recursive: true })
+      await writeFile(join(dir, filename), bytes)
+      return { url: `/api/uploads/${filename}` }
     } catch (e) {
-      console.error('[cms] upload failed', e)
-      return { error: 'Nie udało się przesłać pliku.' }
+      console.error('[cms] local upload failed', e)
+      return { error: 'Nie udało się zapisać pliku lokalnie.' }
     }
+  }
+
+  // Produkcja: prywatny bucket, serwowany przez /api/media (zob. route.ts).
+  try {
+    const blob = await put(`cms/${filename}`, file, { access: 'private', contentType: file.type })
+    return { url: `/api/media?pathname=${encodeURIComponent(blob.pathname)}` }
+  } catch (e) {
+    console.error('[cms] upload failed', e)
+    return { error: 'Nie udało się przesłać pliku.' }
   }
 }

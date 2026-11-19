@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { Post } from '@/lib/db/schema'
+import { FillImage } from './smart-image'
 
 export const formatDate = (d: Date) =>
   new Intl.DateTimeFormat('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }).format(d)
@@ -8,11 +9,14 @@ export function PostCard({ post }: { post: Post }) {
   return (
     <article className="group flex flex-col overflow-hidden rounded-md bg-card">
       <Link href={`/blog/${post.slug}`} className="flex flex-1 flex-col">
-        <img
-          src={post.coverImage ?? '/images/team-2.jpg'}
-          alt=""
-          className="aspect-video w-full object-cover transition-transform duration-300 group-hover:scale-105"
-        />
+        <div className="relative aspect-video w-full overflow-hidden">
+          <FillImage
+            src={post.coverImage ?? '/images/team-2.jpg'}
+            alt=""
+            sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
+            className="transition-transform duration-300 group-hover:scale-105"
+          />
+        </div>
         <div className="flex flex-1 flex-col gap-2 p-5">
           <time dateTime={post.publishedAt.toISOString()} className="text-xs uppercase tracking-wider text-primary">
             {formatDate(post.publishedAt)}

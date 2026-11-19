@@ -2,6 +2,13 @@ import { betterAuth } from 'better-auth'
 import { APIError } from 'better-auth/api'
 import { pool } from '@/lib/db'
 
+const isV0Preview = Boolean(
+  process.env.V0_RUNTIME_URL ||
+    process.env.V0_DEV_APP_URL ||
+    process.env.V0_BUILD_URL ||
+    process.env.V0_SANDBOX_URL,
+)
+
 export const auth = betterAuth({
   database: pool,
   baseURL:
@@ -16,6 +23,12 @@ export const auth = betterAuth({
     autoSignIn: true,
     minPasswordLength: 12,
     maxPasswordLength: 128,
+  },
+  user: {
+    additionalFields: {
+      // Rola jest ustawiana przez bazę; nie można jej zmienić z poziomu API.
+      role: { type: 'string', defaultValue: 'admin', input: false },
+    },
   },
   trustedOrigins: [
     ...(process.env.NODE_ENV === 'development'
@@ -65,11 +78,12 @@ export const auth = betterAuth({
       },
     },
   },
-  ...(process.env.NODE_ENV === 'development'
+  ...(process.env.NODE_ENV === 'development' && isV0Preview
     ? {
         advanced: {
-          // Required by the cross-site v0 preview iframe. Without these
-          // attributes, login succeeds but the next request appears signed out.
+          // Tylko dla iframe'a podglądu v0: bez tych atrybutów udane logowanie
+          // znika przy kolejnym żądaniu. Zwykły localhost pozostaje przy
+          // domyślnych, bezpiecznych ciasteczkach sameSite=lax.
           defaultCookieAttributes: {
             sameSite: 'none' as const,
             secure: true,

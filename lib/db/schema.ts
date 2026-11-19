@@ -1,4 +1,4 @@
-import { boolean, integer, jsonb, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core'
+import { boolean, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
 
 export const user = pgTable('user', {
   id: text('id').primaryKey(),
@@ -6,13 +6,14 @@ export const user = pgTable('user', {
   email: text('email').notNull().unique(),
   emailVerified: boolean('emailVerified').notNull().default(false),
   image: text('image'),
+  role: text('role').notNull().default('admin'),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
 })
 
 export type Spec = { label: string; value: string }
 export type Stat = { label: string; value: string; unit: string }
-export type Achievement = { title: string; location: string; result: string }
+export type Achievement = { title: string; location: string; result: string; countryCode?: string }
 
 export const navItems = pgTable('nav_items', {
   id: serial('id').primaryKey(),
@@ -65,10 +66,25 @@ export const projects = pgTable('projects', {
   totalValue: text('total_value'),
   period: text('period').notNull().default(''),
   description: text('description').notNull().default(''),
+  heading: text('heading').notNull().default(''),
+  imageUrls: text('image_urls').notNull().default(''),
   sortOrder: integer('sort_order').notNull().default(0),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 })
+
+export const siteContent = pgTable(
+  'site_content',
+  {
+    id: serial('id').primaryKey(),
+    area: text('area').notNull(),
+    entryKey: text('entry_key').notNull(),
+    data: jsonb('data').$type<Record<string, unknown>>().notNull().default({}),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex('site_content_area_key_idx').on(table.area, table.entryKey)],
+)
 
 export type NavItem = typeof navItems.$inferSelect
 export type Post = typeof posts.$inferSelect

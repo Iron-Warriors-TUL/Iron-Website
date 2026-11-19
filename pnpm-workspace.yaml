@@ -3,3 +3,8 @@ pmOnFail: ignore
 minimumReleaseAgeExclude:
   - '@next/*'
   - next
+
+allowBuilds:
+  esbuild: true
+  sharp: true
+  '@img/sharp-win32-x64': true

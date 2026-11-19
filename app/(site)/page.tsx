@@ -1,121 +1,133 @@
-import Link from 'next/link'
-import { ArrowRight, CircleArrowDown } from 'lucide-react'
-import { getPublishedPosts, getVehicles } from '@/lib/data'
-import { JoinCta, OrangeLink, Paragraphs, StatGrid } from '@/components/site/section'
-import { PostCard } from '@/components/site/post-card'
+import { getVehicles } from '@/lib/data'
+import { getContent } from '@/lib/content'
+import { Gallery, JoinCta, OrangeLink, Paragraphs, StatGrid, type StatItem } from '@/components/site/section'
+import { FillImage } from '@/components/site/smart-image'
+import { YouTubeBackdrop, YouTubeEmbed } from '@/components/site/youtube-video'
 
-const records = [
-  { label: 'Kategoria Prototype ICE', value: '837', unit: 'km/l' },
-  { label: 'Kategoria Prototype Battery Electric', value: '2267', unit: 'km/l SP95' },
-]
+type Lines = unknown[][]
+
+const lines = (value: unknown): Lines => (Array.isArray(value) ? (value as Lines) : [])
+const text = (value: unknown) => (typeof value === 'string' ? value : '')
 
 export default async function HomePage() {
-  const [vehicles, posts] = await Promise.all([getVehicles(), getPublishedPosts(3)])
-  const featured = vehicles.filter((v) => v.featured)
+  const [home, vehicles] = await Promise.all([getContent('home'), getVehicles()])
+  const featuredOrder = lines(home.featured).map((row) => String(row[0] ?? ''))
+  const featured = featuredOrder
+    .map((slug) => vehicles.find((vehicle) => vehicle.slug === slug))
+    .filter((vehicle): vehicle is (typeof vehicles)[number] => Boolean(vehicle))
+
+  const stats: StatItem[] = lines(home.stats).map(([label, value, unit]) => ({
+    label: String(label ?? ''),
+    value: String(value ?? ''),
+    unit: String(unit ?? '') || undefined,
+  }))
+  const aboutImages = lines(home.aboutGallery).map((row) => String(row[0] ?? '')).filter(Boolean)
 
   return (
     <>
-      <section className="relative isolate flex min-h-[80vh] items-center justify-center overflow-hidden text-center">
-        <img src="/images/eco-arrow-3-2.jpg" alt="" className="absolute inset-0 -z-10 size-full object-cover" />
-        <div className="absolute inset-0 -z-10 bg-black/70" />
-        <div className="flex w-full max-w-5xl flex-col items-center gap-6 px-4">
-          <h1 className="text-balance text-5xl font-bold md:text-7xl">Iron Warriors Team</h1>
-          <div className="flex w-full items-center gap-4">
-            <span className="h-0.5 flex-1 bg-foreground" aria-hidden="true" />
-            <p className="text-sm font-semibold md:text-base">Rekordziści Polski w jeździe na kropelkę benzyny</p>
-            <span className="h-0.5 flex-1 bg-foreground" aria-hidden="true" />
-          </div>
-          <a
-            href="#o-nas"
-            className="inline-flex items-center gap-2 rounded-sm bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-          >
-            <CircleArrowDown className="size-4" aria-hidden="true" />O nas
-          </a>
+      <section className="relative isolate flex h-[934px] items-center overflow-hidden text-center">
+        <YouTubeBackdrop
+          videoId={text(home.heroVideoId)}
+          start={Number(home.heroStart) || 0}
+          end={Number(home.heroEnd) || 0}
+          poster={text(home.heroPoster)}
+        />
+        <div className="absolute inset-0 -z-0 bg-black/75" />
+        <div className="relative z-10 flex w-full animate-in flex-col items-center gap-[109px] px-4 fade-in slide-in-from-bottom-6 duration-700">
+          <h1 className="text-balance text-[38px] font-semibold leading-tight text-white md:text-[59px] md:leading-[59px]">
+            {text(home.heroTitle)}
+          </h1>
+          <OrangeLink href={text(home.heroCtaHref)} className="h-12 w-[127px] p-0">
+            {text(home.heroCtaLabel)}
+          </OrangeLink>
         </div>
       </section>
 
-      <section id="o-nas" className="scroll-mt-20 py-20">
-        <div className="mx-auto flex max-w-6xl flex-col gap-12 px-4 md:px-6">
-          <div className="flex flex-col gap-4">
-            <h2 className="text-5xl font-bold">O nas</h2>
-            <p className="max-w-4xl text-pretty leading-relaxed text-muted-foreground">
-              Jesteśmy Rekordzistami Polski, grupą młodych, ambitnych studentów Politechniki Łódzkiej, robiących coś
-              ponadprzeciętnego, a przede wszystkim wykorzystujących w praktyce wiedzę zdobywaną na studiach. Nasza
-              drużyna powstała pod koniec 2012 roku i od tego czasu pracuje nad pojazdem, który ma za zadanie przejechać
-              jak najwięcej kilometrów w przeliczeniu na jednostkę paliwa.
-            </p>
-            <p className="font-bold">Jesteśmy najszybciej rozwijającą się polską drużyną startującą w zawodach typu eco-marathon.</p>
+      <section id="firstFP" className="relative isolate overflow-hidden scroll-mt-28 py-5">
+        <FillImage src={text(home.aboutBackground)} alt="" sizes="100vw" className="-z-10" />
+        <div className="absolute inset-0 -z-10 bg-white/82" />
+        <div className="mx-auto w-full max-w-[1140px] px-4">
+          <h2 data-reveal className="text-[42px] font-semibold leading-[59px] text-heading md:text-[59px]">{text(home.aboutHeading)}</h2>
+          <Paragraphs text={text(home.aboutTop)} className="mt-6 max-w-[1100px]" />
+
+          <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-[540px_540px] lg:justify-center">
+            <div className="flex flex-col gap-5">
+              <Paragraphs text={text(home.aboutLeft)} />
+              <Gallery
+                images={aboutImages}
+                alt={text(home.aboutGalleryAlt)}
+                effect="slide"
+                className="w-full max-w-[540px] lg:mt-16"
+                sizes="(min-width: 1024px) 540px, 100vw"
+              />
+            </div>
+            <div className="flex flex-col gap-5">
+              <YouTubeEmbed videoId={text(home.aboutVideoId)} className="w-full max-w-[540px]" />
+              <Paragraphs text={text(home.aboutRight)} />
+            </div>
           </div>
 
-          <div className="grid items-center gap-10 md:grid-cols-2">
-            <Paragraphs text={`W ciągu 14 lat zbudowaliśmy trzy bolidy i osiągnęliśmy naprawdę wiele m.in. zajęliśmy 1. miejsce podczas zawodów Educ Eco we Francji czy dwukrotnie ustanowiliśmy Rekord Polski w jeździe na kropelce benzyny – 837 km w przeliczeniu na 1 l benzyny.\n\nOd 2022 roku pracujemy także nad pojazdem elektrycznym, powstałym na bazie Eco Arrow 2. W ten sposób staliśmy się jedyną w Polsce drużyną mogącą startować w kategorii pojazdów prototypowych napędzanych silnikiem elektrycznym. W 2026 roku udało nam się natomiast ustanowić Rekord Polski w kategorii pojazdów zasilanych energią elektryczną – 2267 km w przeliczeniu na 1 l benzyny.`} />
-            <img src="/images/team-1.jpg" alt="Zespół Iron Warriors z bolidem podczas Shell Eco-marathon" className="aspect-video w-full rounded-md object-cover" />
-          </div>
-
-          <div className="grid items-center gap-10 md:grid-cols-2">
-            <img src="/images/team-3.jpg" alt="Członkowie zespołu Iron Warriors przy pracy nad bolidem" className="aspect-video w-full rounded-md object-cover md:order-first" />
-            <Paragraphs text={`Ciągle dążymy do łamania barier, dlatego aktualnie pracujemy nad modernizacją bolidów w zakresie elektryki i silników. Dzięki szkoleniom możemy rozwijać nasze umiejętności, dzięki którym możemy uzyskiwać coraz lepsze wyniki poprzez projektowanie nowych rozwiązań czy całych pojazdów.\n\nPoza działalnością związaną z budową oraz ulepszaniem naszych pojazdów, działamy także na polu naukowym, tworząc publikacje naukowe. Bierzemy udział również w wielu konferencjach międzynarodowych, które umożliwiają nam prezentowanie naszych osiągnięć. Odwiedziliśmy już m.in. Cambridge, Melbourne, Helsinki czy Bangkok.`} />
-          </div>
-
-          <div className="flex flex-col gap-8 rounded-md bg-card p-8 md:p-10">
-            <h2 className="text-3xl font-bold">O nas w liczbach</h2>
+          <div className="mt-10">
+            <h2 data-reveal className="text-[32px] font-semibold text-heading md:text-[39px] md:leading-[39px]">{text(home.statsHeading)}</h2>
+            <h3 data-reveal className="mt-4 text-center text-[24px] font-semibold text-black/55 md:text-[29px] md:leading-[29px]">
+              {text(home.statsSubheading)}
+            </h3>
             <StatGrid
-              stats={[
-                { label: 'Członków zespołu', value: '40', unit: '+' },
-                ...records,
-                { label: 'Bolidy', value: String(vehicles.length), unit: '' },
-              ]}
+              className="mt-4 grid-cols-2 lg:grid-cols-4"
+              stats={stats}
             />
-            <div>
-              <OrangeLink href="/bolidy">
-                Nasze bolidy <ArrowRight className="size-4" aria-hidden="true" />
+            <div className="mt-4 flex justify-end">
+              <OrangeLink href={text(home.vehiclesLinkHref)} className="h-[39px] px-8 py-0 text-[15px] font-normal">
+                {text(home.vehiclesLinkLabel)}
               </OrangeLink>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="bg-card py-20">
-        <div className="mx-auto flex max-w-6xl flex-col gap-16 px-4 md:px-6">
-          <h2 className="text-5xl font-bold">Nasze bolidy</h2>
-          {featured.map((v, i) => (
-            <article key={v.id} className="grid items-center gap-10 md:grid-cols-2">
-              <img
-                src={v.imageUrl ?? '/images/eco-arrow-3-1.jpg'}
-                alt={`Bolid ${v.name}`}
-                className={`aspect-[4/3] w-full rounded-md object-cover ${i % 2 ? 'md:order-last' : ''}`}
-              />
-              <div className="flex flex-col gap-6">
-                <h3 className="text-3xl font-bold text-primary">{v.name}</h3>
-                <StatGrid stats={v.stats} />
-                <Paragraphs text={v.description.split(/\n{2,}/)[0] ?? ''} />
-                {v.goal && <p className="font-semibold">{v.goal}</p>}
-                <Link href={`/bolidy/${v.slug}`} className="inline-flex items-center gap-2 font-semibold text-primary hover:underline">
-                  Więcej o {v.name} <ArrowRight className="size-4" aria-hidden="true" />
-                </Link>
+      {await Promise.all(featured.map(async (vehicle) => {
+        const content = await getContent('home-vehicles', vehicle.slug)
+        if (!content.heading) return null
+        const gallery = lines(content.gallery).map((row) => String(row[0] ?? '')).filter(Boolean)
+        const vehicleStats: StatItem[] = lines(content.stats).map(([label, value, unit]) => ({
+          label: String(label ?? ''),
+          value: String(value ?? ''),
+          unit: String(unit ?? '') || undefined,
+        }))
+        return (
+          <section key={vehicle.id} className="relative isolate overflow-hidden py-5">
+            <FillImage src={text(content.background)} alt="" sizes="100vw" className="-z-10" />
+            <div className="absolute inset-0 -z-10 bg-white/93" />
+            <div className="mx-auto w-full max-w-[1140px] px-4">
+              {vehicle.slug === featured[0]?.slug && (
+                <h2 data-reveal className="text-[42px] font-semibold leading-[59px] text-heading md:text-[59px]">{text(home.vehiclesHeading)}</h2>
+              )}
+              <div className="mt-2 grid grid-cols-1 gap-5 lg:grid-cols-[540px_652px] lg:justify-center">
+                <div className="flex flex-col">
+                  <h3 data-reveal className="text-[24px] font-semibold text-black/48 md:text-[30px] md:leading-[30px]">
+                    {text(content.heading)}
+                  </h3>
+                  <StatGrid
+                    stats={vehicleStats}
+                    className="mt-5 grid-cols-2 [&>div]:items-start [&_dd]:justify-start [&_dt]:text-left"
+                  />
+                </div>
+                <Gallery
+                  images={gallery}
+                  alt={text(content.heading)}
+                  effect="slide"
+                  className="w-full max-w-[652px]"
+                  sizes="(min-width: 1024px) 652px, 100vw"
+                />
               </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      {posts.length > 0 && (
-        <section className="py-20">
-          <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 md:px-6">
-            <div className="flex flex-wrap items-end justify-between gap-4">
-              <h2 className="text-5xl font-bold">Aktualności</h2>
-              <Link href="/blog" className="inline-flex items-center gap-2 font-semibold text-primary hover:underline">
-                Wszystkie wpisy <ArrowRight className="size-4" aria-hidden="true" />
-              </Link>
+              <Paragraphs
+                text={text(content.text)}
+                className="mt-10 max-w-[1120px] text-[14px] leading-[25.2px]"
+              />
             </div>
-            <div className="grid gap-6 md:grid-cols-3">
-              {posts.map((p) => (
-                <PostCard key={p.id} post={p} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+          </section>
+        )
+      }))}
 
       <JoinCta />
     </>

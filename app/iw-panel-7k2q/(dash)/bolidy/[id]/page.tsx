@@ -59,8 +59,8 @@ export default async function VehicleEditor({ params }: { params: Promise<{ id: 
         <Field label="Dane techniczne" htmlFor="specs" hint="Każda linia: parametr | wartość">
           <textarea id="specs" name="specs" defaultValue={v ? lines(v.specs, ['label', 'value']) : ''} rows={8} className={`${inputClass} font-mono`} />
         </Field>
-        <Field label="Osiągnięcia" htmlFor="achievements" hint="Każda linia: zawody | miejsce | wynik">
-          <textarea id="achievements" name="achievements" defaultValue={v ? lines(v.achievements, ['title', 'location', 'result']) : ''} rows={6} className={`${inputClass} font-mono`} />
+        <Field label="Osiągnięcia" htmlFor="achievements" hint="Każda linia: zawody | miejsce | wynik | kod flagi (pl, fr, gb, fi, nl)">
+          <textarea id="achievements" name="achievements" defaultValue={v ? lines(v.achievements, ['title', 'location', 'result', 'countryCode']) : ''} rows={6} className={`${inputClass} font-mono`} />
         </Field>
         <Checkbox name="featured" label="Pokaż na stronie głównej" defaultChecked={v?.featured} />
       </AdminForm>

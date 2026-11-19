@@ -51,8 +51,14 @@ export default async function ProjectEditor({ params }: { params: Promise<{ id: 
             <input id="totalValue" name="totalValue" defaultValue={p?.totalValue ?? ''} maxLength={100} className={inputClass} />
           </Field>
         </div>
+        <Field label="Nagłówek wpisu" htmlFor="heading">
+          <input id="heading" name="heading" defaultValue={p?.heading} maxLength={500} className={inputClass} />
+        </Field>
         <Field label="Opis" htmlFor="description">
           <textarea id="description" name="description" defaultValue={p?.description} rows={6} maxLength={10000} className={inputClass} />
+        </Field>
+        <Field label="Obrazy (jedna ścieżka na linię)" htmlFor="imageUrls">
+          <textarea id="imageUrls" name="imageUrls" defaultValue={p?.imageUrls ?? ''} rows={3} maxLength={4000} className={inputClass} />
         </Field>
         <Field label="Kolejność" htmlFor="sortOrder">
           <input id="sortOrder" name="sortOrder" type="number" defaultValue={p?.sortOrder ?? 0} className={`${inputClass} max-w-32`} />

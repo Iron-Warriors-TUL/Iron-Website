@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import { uploadImage } from '@/app/iw-panel-7k2q/actions'
 import { inputClass } from './fields'
+import { FixedImage } from '@/components/site/smart-image'
 
 export function ImageField({ name, label, defaultValue }: { name: string; label: string; defaultValue?: string | null }) {
   const [url, setUrl] = useState(defaultValue ?? '')
@@ -30,7 +31,14 @@ export function ImageField({ name, label, defaultValue }: { name: string; label:
       </label>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
         {url ? (
-          <img src={url} alt="Podgląd obrazu" className="h-24 w-36 shrink-0 rounded-sm border border-border object-cover" />
+          <FixedImage
+            src={url}
+            alt="Podgląd obrazu"
+            width={144}
+            height={96}
+            sizes="144px"
+            className="h-24 w-36 shrink-0 rounded-sm border border-border object-cover"
+          />
         ) : (
           <div className="flex h-24 w-36 shrink-0 items-center justify-center rounded-sm border border-dashed border-border text-xs text-muted-foreground">
             Brak obrazu

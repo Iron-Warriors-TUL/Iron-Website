@@ -8,7 +8,7 @@ export const ADMIN_PATH = '/iw-panel-7k2q'
 
 export async function getAdminSession() {
   const session = await auth.api.getSession({ headers: await headers() })
-  return session?.user ? session : null
+  return session?.user?.role === 'admin' ? session : null
 }
 
 export async function requireAdmin() {

@@ -5,6 +5,7 @@ import { ArrowLeft } from 'lucide-react'
 import { getPublishedPost } from '@/lib/data'
 import { Paragraphs } from '@/components/site/section'
 import { formatDate } from '@/components/site/post-card'
+import { FillImage } from '@/components/site/smart-image'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -29,7 +30,11 @@ export default async function PostPage({ params }: Props) {
         </time>
         <h1 className="text-balance text-4xl font-bold md:text-5xl">{post.title}</h1>
       </header>
-      {post.coverImage && <img src={post.coverImage} alt="" className="w-full rounded-md object-cover" />}
+      {post.coverImage && (
+        <div className="relative aspect-video w-full overflow-hidden rounded-md">
+          <FillImage src={post.coverImage} alt="" sizes="(min-width: 768px) 768px, 100vw" />
+        </div>
+      )}
       <Paragraphs text={post.content} className="text-lg text-foreground/85" />
     </article>
   )

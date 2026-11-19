@@ -1,17 +1,21 @@
 import Link from 'next/link'
 import { count } from 'drizzle-orm'
 import { db } from '@/lib/db'
-import { navItems, posts, projects, vehicles } from '@/lib/db/schema'
+import { navItems, posts, projects, siteContent, vehicles } from '@/lib/db/schema'
 import { ADMIN_PATH } from '@/lib/admin'
+import { contentAreas } from '@/lib/content-registry'
 
 export default async function Dashboard() {
-  const [[n], [p], [v], [pr]] = await Promise.all([
+  const [[n], [p], [v], [pr], [sc]] = await Promise.all([
     db.select({ c: count() }).from(navItems),
     db.select({ c: count() }).from(posts),
     db.select({ c: count() }).from(vehicles),
     db.select({ c: count() }).from(projects),
+    db.select({ c: count() }).from(siteContent),
   ])
   const cards = [
+    { label: 'Edytowalne obszary', value: contentAreas.length, href: `${ADMIN_PATH}/tresc` },
+    { label: 'Zapisane zmiany treści', value: sc.c, href: `${ADMIN_PATH}/tresc` },
     { label: 'Elementy nawigacji', value: n.c, href: `${ADMIN_PATH}/nawigacja` },
     { label: 'Wpisy na blogu', value: p.c, href: `${ADMIN_PATH}/blog` },
     { label: 'Bolidy', value: v.c, href: `${ADMIN_PATH}/bolidy` },

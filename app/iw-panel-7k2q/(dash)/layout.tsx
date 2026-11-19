@@ -1,11 +1,14 @@
 import Link from 'next/link'
-import { ExternalLink, FileText, LayoutDashboard, Menu, Car, FolderKanban } from 'lucide-react'
+import { ExternalLink, FileText, LayoutDashboard, Menu, Car, FolderKanban, PencilLine, Users } from 'lucide-react'
 import { ADMIN_PATH, requireAdminPage } from '@/lib/admin'
 import { SignOutButton } from '@/components/admin/sign-out-button'
+import { FixedImage } from '@/components/site/smart-image'
 
 const links = [
   { href: ADMIN_PATH, label: 'Pulpit', icon: LayoutDashboard },
-  { href: `${ADMIN_PATH}/nawigacja`, label: 'Nawigacja', icon: Menu },
+  { href: `${ADMIN_PATH}/tresc`, label: 'Treść strony', icon: PencilLine },
+  { href: `${ADMIN_PATH}/nawigacja`, label: 'Nawigacja (navbar)', icon: Menu },
+  { href: `${ADMIN_PATH}/tresc/people/main`, label: 'Osoby', icon: Users },
   { href: `${ADMIN_PATH}/blog`, label: 'Blog', icon: FileText },
   { href: `${ADMIN_PATH}/bolidy`, label: 'Bolidy', icon: Car },
   { href: `${ADMIN_PATH}/projekty`, label: 'Projekty', icon: FolderKanban },
@@ -17,7 +20,14 @@ export default async function DashLayout({ children }: { children: React.ReactNo
   return (
     <div className="flex min-h-dvh flex-col md:flex-row">
       <aside className="flex shrink-0 flex-col gap-4 border-b border-border bg-card p-4 md:sticky md:top-0 md:h-dvh md:w-60 md:border-b-0 md:border-r">
-        <img src="/images/logo-iron-warriors-poziome.png" alt="Iron Warriors" className="h-10 w-auto self-start" />
+        <FixedImage
+          src="/images/logo-iron-warriors-poziome.png"
+          alt="Iron Warriors"
+          width={200}
+          height={50}
+          sizes="150px"
+          className="h-10 w-auto self-start"
+        />
         <nav aria-label="Panel" className="flex flex-wrap gap-1 md:flex-col">
           {links.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href} className="flex items-center gap-2 rounded-sm px-3 py-2 text-sm hover:bg-secondary hover:text-primary">
