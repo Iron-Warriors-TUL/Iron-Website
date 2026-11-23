@@ -1,6 +1,6 @@
 import Link from 'next/link'
-import { ExternalLink, FileText, LayoutDashboard, Menu, Car, FolderKanban, PencilLine, Users } from 'lucide-react'
-import { ADMIN_PATH, requireAdminPage } from '@/lib/admin'
+import { ExternalLink, FileText, LayoutDashboard, Menu, Car, FolderKanban, PencilLine, ShieldCheck, Users } from 'lucide-react'
+import { ADMIN_PATH, requireCmsPage } from '@/lib/admin'
 import { SignOutButton } from '@/components/admin/sign-out-button'
 import { FixedImage } from '@/components/site/smart-image'
 
@@ -15,7 +15,11 @@ const links = [
 ]
 
 export default async function DashLayout({ children }: { children: React.ReactNode }) {
-  const session = await requireAdminPage()
+  const session = await requireCmsPage()
+  const role = session.user.role
+  const visibleLinks = role === 'admin'
+    ? [...links, { href: `${ADMIN_PATH}/konta`, label: 'Konta', icon: ShieldCheck }]
+    : links
 
   return (
     <div className="flex min-h-dvh flex-col md:flex-row">
@@ -29,7 +33,7 @@ export default async function DashLayout({ children }: { children: React.ReactNo
           className="h-10 w-auto self-start"
         />
         <nav aria-label="Panel" className="flex flex-wrap gap-1 md:flex-col">
-          {links.map(({ href, label, icon: Icon }) => (
+          {visibleLinks.map(({ href, label, icon: Icon }) => (
             <Link key={href} href={href} className="flex items-center gap-2 rounded-sm px-3 py-2 text-sm hover:bg-secondary hover:text-primary">
               <Icon className="size-4" aria-hidden="true" />
               {label}
