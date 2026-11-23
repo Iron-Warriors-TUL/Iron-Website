@@ -11,6 +11,21 @@ Krótka wersja (zakładając, że kontener `iw-postgres` już istnieje):
 3. Zastosuj schemat i dane startowe: `corepack pnpm db:migrate && corepack pnpm db:seed`.
 4. Start aplikacji: `corepack pnpm dev` → http://localhost:3000
 
+### Uruchomienie całego środowiska w Dockerze
+
+```bash
+docker compose up --build
+```
+
+Aplikacja będzie dostępna pod http://localhost:3000, a PostgreSQL pod portem `55432`.
+Docker Compose sam utworzy bazę, zastosuje migracje i dane startowe.
+
+Zatrzymanie i usunięcie kontenerów:
+
+```bash
+docker compose down
+```
+
 Panel admina: http://localhost:3000/iw-panel-7k2q/login
 
 Podczas weryfikacji utworzono konto:
