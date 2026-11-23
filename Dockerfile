@@ -9,9 +9,16 @@ RUN pnpm install --frozen-lockfile
 
 COPY . .
 
-ENV NODE_ENV=development
+RUN mkdir -p public/uploads && chown -R node:node /app
+
+# Serwer produkcyjny (next start) — bez trybu deweloperskiego i bez uprawnień roota.
+ENV NODE_ENV=production
 ENV HOSTNAME=0.0.0.0
+ENV PORT=3000
+
+USER node
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "pnpm db:migrate && pnpm db:seed && pnpm dev"]
+# Migracja i seed muszą poprzedzić build, ponieważ strony są prerenderowane z bazy.
+CMD ["sh", "-c", "pnpm db:migrate && pnpm db:seed && pnpm build && pnpm start"]

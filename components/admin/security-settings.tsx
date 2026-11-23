@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import QRCode from 'qrcode'
 import { authClient } from '@/lib/auth-client'
 import { Field, inputClass } from './fields'
@@ -28,7 +29,13 @@ export function SecuritySettings() {
   }
 
   useEffect(() => {
-    void refreshPasskeys()
+    let active = true
+    authClient.passkey.listUserPasskeys().then((res) => {
+      if (active) setPasskeys((res.data ?? []) as Passkey[])
+    })
+    return () => {
+      active = false
+    }
   }, [])
 
   async function enableTotp() {
@@ -136,7 +143,7 @@ export function SecuritySettings() {
           )}
           {qr && (
             <div className="flex flex-col items-center gap-4">
-              <img src={qr} alt="Kod QR TOTP" className="size-48 rounded-md bg-white p-2" />
+              <Image src={qr} alt="Kod QR TOTP" width={192} height={192} unoptimized className="size-48 rounded-md bg-white p-2" />
               <Field label="Kod z aplikacji" htmlFor="totp-code">
                 <input
                   id="totp-code"

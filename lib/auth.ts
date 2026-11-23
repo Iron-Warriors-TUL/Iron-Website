@@ -16,12 +16,9 @@ export const auth = betterAuth({
   database: pool,
   plugins: [
     twoFactor(),
-    passkey({
-      rpName: 'Iron Warriors CMS',
-      rpID: process.env.BETTER_AUTH_URL
-        ? new URL(process.env.BETTER_AUTH_URL).hostname
-        : 'localhost',
-    }),
+    // rpID/origin są wyliczane przez wtyczkę z baseURL — nie nadpisujemy ich
+    // ręcznie, żeby passkeye działały też poza localhost (np. na Vercel).
+    passkey({ rpName: 'Iron Warriors CMS' }),
   ],
   baseURL:
     process.env.BETTER_AUTH_URL ??
@@ -39,7 +36,8 @@ export const auth = betterAuth({
   user: {
     additionalFields: {
       // Rola jest ustawiana przez bazę; nie można jej zmienić z poziomu API.
-      role: { type: 'string', defaultValue: 'admin', input: false },
+      // Domyślnie najmniejsze uprawnienia (rejestracja i tak jest wyłączona).
+      role: { type: 'string', defaultValue: 'editor', input: false },
     },
   },
   trustedOrigins: [
@@ -54,6 +52,7 @@ export const auth = betterAuth({
       : []),
     ...(process.env.NODE_ENV === 'production'
       ? [
+          ...(process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : []),
           ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
           ...(process.env.VERCEL_PROJECT_PRODUCTION_URL
             ? [`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`]

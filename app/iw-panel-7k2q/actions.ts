@@ -15,6 +15,7 @@ import { ADMIN_PATH, requireAdmin, requireCms } from '@/lib/admin'
 import { hashPassword } from 'better-auth/crypto'
 import { collectDescendantIds, validateNavParent } from '@/lib/navigation'
 import { hasValidImageSignature, imageExtension, MAX_IMAGE_BYTES } from '@/lib/upload'
+import { isHttpsUrl, isSafePath } from '@/lib/safe-url'
 
 export type FormState = { error?: string; ok?: boolean }
 
@@ -32,18 +33,23 @@ const slug = z
   .min(1, 'Slug jest wymagany')
   .max(120)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug: tylko małe litery, cyfry i myślniki')
+// Ścieżka lokalna: pojedynczy '/' na początku (odrzuca protokołowo-względne '//host').
+// Zewnętrzne adresy wyłącznie po HTTPS.
 const imageUrl = z
   .string()
   .trim()
   .max(2000)
-  .refine((v) => v === '' || v.startsWith('/') || /^https:\/\//.test(v), 'Nieprawidłowy adres obrazu')
+  .refine((v) => v === '' || isSafePath(v) || isHttpsUrl(v), 'Nieprawidłowy adres obrazu')
   .transform((v) => (v === '' ? null : v))
 const href = z
   .string()
   .trim()
   .min(1)
   .max(500)
-  .refine((v) => v.startsWith('/') || v.startsWith('#') || /^https?:\/\//.test(v), 'Link musi zaczynać się od /, # lub http(s)://')
+  .refine(
+    (v) => isSafePath(v) || v.startsWith('#') || isHttpsUrl(v),
+    'Link musi być ścieżką (/...), kotwicą (#...) lub adresem https://',
+  )
 const int = z.coerce.number().int().min(-100000).max(100000)
 const id = z.coerce.number().int().positive()
 
@@ -300,8 +306,8 @@ function parseFieldValue(field: Field, raw: FormData): unknown {
       })
   }
   if (field.type === 'textarea') return value.slice(0, 100000)
-  if (field.type === 'url' && value && !/^https?:\/\//.test(value) && !value.startsWith('/')) {
-    throw new Error('Link musi zaczynać się od http(s):// lub /')
+  if (field.type === 'url' && value && !isHttpsUrl(value) && !isSafePath(value)) {
+    throw new Error('Link musi zaczynać się od https:// lub /')
   }
   return value.slice(0, 4000)
 }
@@ -408,110 +414,117 @@ export async function uploadImage(fd: FormData): Promise<{ url?: string; error?:
 
 export async function saveAccount(_: FormState, fd: FormData): Promise<FormState> {
   await requireAdmin()
-    const name = s(fd, 'name').trim()
-    const email = s(fd, 'email').trim().toLowerCase()
-    const password = s(fd, 'password')
-    const role = s(fd, 'role')
-    const rawId = s(fd, 'id')
+  const name = s(fd, 'name').trim()
+  const email = s(fd, 'email').trim().toLowerCase()
+  const password = s(fd, 'password')
+  const role = s(fd, 'role')
+  const rawId = s(fd, 'id')
 
-    if (!name || name.length > 80) return { error: 'Podaj prawidłowe imię i nazwisko.' }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
-      return { error: 'Podaj prawidłowy adres e-mail.' }
-    }
-    if (role !== 'admin' && role !== 'editor') return { error: 'Nieprawidłowa rola.' }
-    if (!rawId && password.length < 12) return { error: 'Hasło musi mieć co najmniej 12 znaków.' }
-    if (rawId && password && password.length < 12) return { error: 'Nowe hasło musi mieć co najmniej 12 znaków.' }
-
-    const client = await pool.connect()
-    try {
-      await client.query('BEGIN')
-      if (rawId) {
-        const { rows } = await client.query<{ id: string; role: string }>(
-          'SELECT "id", "role" FROM "user" WHERE "id" = $1',
-          [rawId],
-        )
-        if (!rows[0]) return { error: 'Nie znaleziono konta.' }
-        if (rows[0].role === 'admin' && role !== 'admin') {
-          const { rows: admins } = await client.query<{ count: string }>(
-            `SELECT count(*)::text AS count FROM "user" WHERE "role" = 'admin'`,
-          )
-          if (Number(admins[0]?.count ?? 0) <= 1) {
-            return { error: 'Zawsze musi pozostać co najmniej jeden administrator.' }
-          }
-        }
-        await client.query(
-          'UPDATE "user" SET "name" = $1, "email" = $2, "role" = $3, "updatedAt" = NOW() WHERE "id" = $4',
-          [name, email, role, rawId],
-        )
-        if (password) {
-          const passwordHash = await hashPassword(password)
-          await client.query(
-            `UPDATE "account" SET "password" = $1, "updatedAt" = NOW()
-             WHERE "userId" = $2 AND "providerId" = 'credential'`,
-            [passwordHash, rawId],
-          )
-        }
-      } else {
-        const userId = randomUUID()
-        const passwordHash = await hashPassword(password)
-        await client.query(
-          `INSERT INTO "user" ("id", "name", "email", "emailVerified", "role")
-           VALUES ($1, $2, $3, TRUE, $4)`,
-          [userId, name, email, role],
-        )
-        await client.query(
-          `INSERT INTO "account" ("id", "accountId", "providerId", "userId", "password")
-           VALUES ($1, $2, 'credential', $3, $4)`,
-          [randomUUID(), userId, userId, passwordHash],
-        )
-      }
-      await client.query('COMMIT')
-    } catch (e) {
-      await client.query('ROLLBACK')
-      if (e instanceof Error && 'code' in e && (e as { code?: string }).code === '23505') {
-        return { error: 'Konto z takim e-mailem już istnieje.' }
-      }
-      console.error('[cms] account save failed', e)
-      return { error: 'Nie udało się zapisać konta.' }
-    } finally {
-      client.release()
-    }
-
-    refresh()
-    redirect(`${ADMIN_PATH}/konta`)
-    return { ok: true }
+  if (!name || name.length > 80) return { error: 'Podaj prawidłowe imię i nazwisko.' }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+    return { error: 'Podaj prawidłowy adres e-mail.' }
   }
+  if (role !== 'admin' && role !== 'editor') return { error: 'Nieprawidłowa rola.' }
+  if (!rawId && password.length < 12) return { error: 'Hasło musi mieć co najmniej 12 znaków.' }
+  if (rawId && password && password.length < 12) return { error: 'Nowe hasło musi mieć co najmniej 12 znaków.' }
 
-export async function deleteAccount(fd: FormData) {
-    const session = await requireAdmin()
-    const userId = s(fd, 'id')
-    if (!userId) return
-    if (session.user.id === userId) return
-
-    const client = await pool.connect()
-    try {
-      await client.query('BEGIN')
-      const { rows } = await client.query<{ role: string }>(
-        'SELECT "role" FROM "user" WHERE "id" = $1',
-        [userId],
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    if (rawId) {
+      const { rows } = await client.query<{ id: string; role: string }>(
+        'SELECT "id", "role" FROM "user" WHERE "id" = $1',
+        [rawId],
       )
-      if (rows[0]?.role === 'admin') {
+      if (!rows[0]) {
+        await client.query('ROLLBACK')
+        return { error: 'Nie znaleziono konta.' }
+      }
+      if (rows[0].role === 'admin' && role !== 'admin') {
         const { rows: admins } = await client.query<{ count: string }>(
           `SELECT count(*)::text AS count FROM "user" WHERE "role" = 'admin'`,
         )
         if (Number(admins[0]?.count ?? 0) <= 1) {
           await client.query('ROLLBACK')
-          return
+          return { error: 'Zawsze musi pozostać co najmniej jeden administrator.' }
         }
       }
-      await client.query('DELETE FROM "user" WHERE "id" = $1', [userId])
-      await client.query('COMMIT')
-    } finally {
-      client.release()
+      await client.query(
+        'UPDATE "user" SET "name" = $1, "email" = $2, "role" = $3, "updatedAt" = NOW() WHERE "id" = $4',
+        [name, email, role, rawId],
+      )
+      if (password) {
+        const passwordHash = await hashPassword(password)
+        await client.query(
+          `UPDATE "account" SET "password" = $1, "updatedAt" = NOW()
+           WHERE "userId" = $2 AND "providerId" = 'credential'`,
+          [passwordHash, rawId],
+        )
+      }
+    } else {
+      const userId = randomUUID()
+      const passwordHash = await hashPassword(password)
+      await client.query(
+        `INSERT INTO "user" ("id", "name", "email", "emailVerified", "role")
+         VALUES ($1, $2, $3, TRUE, $4)`,
+        [userId, name, email, role],
+      )
+      await client.query(
+        `INSERT INTO "account" ("id", "accountId", "providerId", "userId", "password")
+         VALUES ($1, $2, 'credential', $3, $4)`,
+        [randomUUID(), userId, userId, passwordHash],
+      )
     }
-    refresh()
-    redirect(`${ADMIN_PATH}/konta`)
+    await client.query('COMMIT')
+  } catch (e) {
+    await client.query('ROLLBACK')
+    if (e instanceof Error && 'code' in e && (e as { code?: string }).code === '23505') {
+      return { error: 'Konto z takim e-mailem już istnieje.' }
+    }
+    console.error('[cms] account save failed', e)
+    return { error: 'Nie udało się zapisać konta.' }
+  } finally {
+    client.release()
   }
+
+  refresh()
+  redirect(`${ADMIN_PATH}/konta`)
+  return { ok: true }
+}
+
+export async function deleteAccount(fd: FormData) {
+  const session = await requireAdmin()
+  const userId = s(fd, 'id')
+  if (!userId) return
+  if (session.user.id === userId) return
+
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    const { rows } = await client.query<{ role: string }>(
+      'SELECT "role" FROM "user" WHERE "id" = $1',
+      [userId],
+    )
+    if (rows[0]?.role === 'admin') {
+      const { rows: admins } = await client.query<{ count: string }>(
+        `SELECT count(*)::text AS count FROM "user" WHERE "role" = 'admin'`,
+      )
+      if (Number(admins[0]?.count ?? 0) <= 1) {
+        await client.query('ROLLBACK')
+        return
+      }
+    }
+    await client.query('DELETE FROM "user" WHERE "id" = $1', [userId])
+    await client.query('COMMIT')
+  } catch (e) {
+    await client.query('ROLLBACK')
+    throw e
+  } finally {
+    client.release()
+  }
+  refresh()
+  redirect(`${ADMIN_PATH}/konta`)
+}
 
 export async function resetAccountSecurity(fd: FormData) {
   await requireAdmin()
