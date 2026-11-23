@@ -1,0 +1,34 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: iw_user
+      POSTGRES_PASSWORD: iw_dev_password
+      POSTGRES_DB: ironwarriors
+    ports:
+      - "55432:5432"
+    volumes:
+      - iw-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iw_user -d ironwarriors"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://iw_user:iw_dev_password@postgres:5432/ironwarriors
+      BETTER_AUTH_SECRET: local-development-secret-change-before-production
+      BETTER_AUTH_URL: http://localhost:3000
+    ports:
+      - "3000:3000"
+    volumes:
+      - iw-app-uploads:/app/public/uploads
+
+volumes:
+  iw-postgres-data:
+  iw-app-uploads:

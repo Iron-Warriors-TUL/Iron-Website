@@ -16,7 +16,13 @@ if (!process.env.DATABASE_URL) {
 }
 
 const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL })
-const files = readdirSync('db').filter((f) => f.endsWith('.sql')).sort()
+const files = readdirSync('db')
+  .filter((f) => f.endsWith('.sql'))
+  .sort((a, b) => {
+    if (a === 'schema.sql') return -1
+    if (b === 'schema.sql') return 1
+    return a.localeCompare(b)
+  })
 
 try {
   for (const file of files) {
