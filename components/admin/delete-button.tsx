@@ -2,7 +2,7 @@
 
 import { Trash2 } from 'lucide-react'
 
-export function DeleteButton({ action, id, label = 'Usuń' }: { action: (fd: FormData) => Promise<void>; id: number; label?: string }) {
+export function DeleteButton({ action, id, label = 'Usuń' }: { action: (fd: FormData) => Promise<void>; id: string | number; label?: string }) {
   return (
     <form
       action={action}

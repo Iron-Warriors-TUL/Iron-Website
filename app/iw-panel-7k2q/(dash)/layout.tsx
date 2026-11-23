@@ -1,11 +1,12 @@
 import Link from 'next/link'
-import { ExternalLink, FileText, LayoutDashboard, Menu, Car, FolderKanban, PencilLine, ShieldCheck, Users } from 'lucide-react'
+import { ExternalLink, FileText, KeyRound, LayoutDashboard, Menu, Car, FolderKanban, PencilLine, ShieldCheck, Users } from 'lucide-react'
 import { ADMIN_PATH, requireCmsPage } from '@/lib/admin'
 import { SignOutButton } from '@/components/admin/sign-out-button'
 import { FixedImage } from '@/components/site/smart-image'
 
 const links = [
   { href: ADMIN_PATH, label: 'Pulpit', icon: LayoutDashboard },
+  { href: `${ADMIN_PATH}/bezpieczenstwo`, label: 'Bezpieczeństwo', icon: KeyRound },
   { href: `${ADMIN_PATH}/tresc`, label: 'Treść strony', icon: PencilLine },
   { href: `${ADMIN_PATH}/nawigacja`, label: 'Nawigacja (navbar)', icon: Menu },
   { href: `${ADMIN_PATH}/tresc/people/main`, label: 'Osoby', icon: Users },

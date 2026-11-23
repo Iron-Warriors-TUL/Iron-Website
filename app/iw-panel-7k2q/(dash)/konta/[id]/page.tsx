@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation'
 import { db } from '@/lib/db'
 import { user } from '@/lib/db/schema'
 import { ADMIN_PATH, requireAdmin } from '@/lib/admin'
-import { deleteAccount, saveAccount } from '../../../actions'
+import { deleteAccount, resetAccountSecurity, saveAccount } from '../../../actions'
 import { AdminForm } from '@/components/admin/admin-form'
 import { DeleteButton } from '@/components/admin/delete-button'
 import { Field, inputClass } from '@/components/admin/fields'
@@ -40,7 +40,7 @@ export default async function AccountEditor({ params }: { params: Promise<{ id: 
           </select>
         </Field>
         <Field
-          label={isNew ? 'Hasło' : 'Nowe hasło'}
+          label={isNew ? 'Hasło' : 'Resetuj hasło'}
           htmlFor="password"
           hint={isNew ? 'Minimum 12 znaków.' : 'Pozostaw puste, aby nie zmieniać hasła.'}
         >
@@ -56,6 +56,18 @@ export default async function AccountEditor({ params }: { params: Promise<{ id: 
           />
         </Field>
       </AdminForm>
+      {account && (
+        <form action={resetAccountSecurity} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-4">
+          <input type="hidden" name="id" value={account.id} />
+          <div>
+            <p className="text-sm font-medium">Reset zabezpieczeń</p>
+            <p className="text-xs text-muted-foreground">Usuń wszystkie passkeyi i wyłącz TOTP tego użytkownika.</p>
+          </div>
+          <button type="submit" className="rounded-sm border border-destructive px-4 py-2 text-sm font-bold text-destructive hover:bg-destructive/5">
+            Resetuj 2FA i passkeyi
+          </button>
+        </form>
+      )}
     </div>
   )
 }

@@ -1,5 +1,7 @@
 import { betterAuth } from 'better-auth'
 import { APIError } from 'better-auth/api'
+import { twoFactor } from 'better-auth/plugins'
+import { passkey } from '@better-auth/passkey'
 import { pool } from '@/lib/db'
 
 const isV0Preview = Boolean(
@@ -10,7 +12,17 @@ const isV0Preview = Boolean(
 )
 
 export const auth = betterAuth({
+  appName: 'Iron Warriors CMS',
   database: pool,
+  plugins: [
+    twoFactor(),
+    passkey({
+      rpName: 'Iron Warriors CMS',
+      rpID: process.env.BETTER_AUTH_URL
+        ? new URL(process.env.BETTER_AUTH_URL).hostname
+        : 'localhost',
+    }),
+  ],
   baseURL:
     process.env.BETTER_AUTH_URL ??
     (process.env.VERCEL_PROJECT_PRODUCTION_URL

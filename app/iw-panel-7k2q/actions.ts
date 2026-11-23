@@ -512,3 +512,29 @@ export async function deleteAccount(fd: FormData) {
     refresh()
     redirect(`${ADMIN_PATH}/konta`)
   }
+
+export async function resetAccountSecurity(fd: FormData) {
+  await requireAdmin()
+  const userId = s(fd, 'id')
+  if (!userId) return
+
+  const client = await pool.connect()
+  try {
+    await client.query('BEGIN')
+    await client.query('DELETE FROM "passkey" WHERE "userId" = $1', [userId])
+    await client.query('DELETE FROM "twoFactor" WHERE "userId" = $1', [userId])
+    await client.query(
+      'UPDATE "user" SET "twoFactorEnabled" = FALSE, "updatedAt" = NOW() WHERE "id" = $1',
+      [userId],
+    )
+    await client.query('COMMIT')
+  } catch (e) {
+    await client.query('ROLLBACK')
+    throw e
+  } finally {
+    client.release()
+  }
+
+  refresh()
+  redirect(`${ADMIN_PATH}/konta/${encodeURIComponent(userId)}`)
+}
