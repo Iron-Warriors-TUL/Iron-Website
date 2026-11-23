@@ -1,4 +1,6 @@
 import pg from 'pg'
+import { randomUUID } from 'node:crypto'
+import { hashPassword } from 'better-auth/crypto'
 
 for (const envFile of ['.env.local', '.env']) {
   try {
@@ -260,6 +262,37 @@ async function main() {
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
+
+    const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase()
+    const adminPassword = process.env.ADMIN_PASSWORD
+    const adminName = process.env.ADMIN_NAME?.trim() || 'Administrator'
+
+    if (adminEmail && adminPassword) {
+      if (adminPassword.length < 12) {
+        throw new Error('ADMIN_PASSWORD musi mieć co najmniej 12 znaków.')
+      }
+      const { rows: existing } = await client.query(
+        'SELECT id FROM "user" LIMIT 1',
+      )
+      if (existing.length === 0) {
+        const userId = randomUUID()
+        const passwordHash = await hashPassword(adminPassword)
+        await client.query(
+          `INSERT INTO "user" ("id", "name", "email", "emailVerified", "role")
+           VALUES ($1, $2, $3, TRUE, 'admin')`,
+          [userId, adminName, adminEmail],
+        )
+        await client.query(
+          `INSERT INTO "account" ("id", "accountId", "providerId", "userId", "password")
+           VALUES ($1, $2, 'credential', $3, $4)`,
+          [randomUUID(), userId, userId, passwordHash],
+        )
+        console.log(`Created admin account: ${adminEmail}`)
+      }
+    } else {
+      console.log('Admin account not created: set ADMIN_EMAIL and ADMIN_PASSWORD.')
+    }
+
     await client.query('TRUNCATE nav_items, vehicles, projects, posts RESTART IDENTITY')
     let order = 0
     for (const item of nav) {

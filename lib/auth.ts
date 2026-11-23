@@ -67,13 +67,8 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
-        // Only the very first account (the bootstrap admin) may ever be created.
-        before: async (newUser) => {
-          const { rows } = await pool.query<{ count: string }>('SELECT count(*) FROM "user"')
-          if (Number(rows[0]?.count ?? 0) > 0) {
-            throw new APIError('FORBIDDEN', { message: 'Rejestracja jest wyłączona.' })
-          }
-          return { data: newUser }
+        before: async () => {
+          throw new APIError('FORBIDDEN', { message: 'Rejestracja jest wyłączona.' })
         },
       },
     },

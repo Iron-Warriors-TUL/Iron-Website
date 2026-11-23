@@ -28,12 +28,9 @@ docker compose down
 
 Panel admina: http://localhost:3000/iw-panel-7k2q/login
 
-Podczas weryfikacji utworzono konto:
-
-- e-mail: `admin@ironwarriors.local`
-- hasło: `IronWarriors2026!`
-
-Rejestracja kolejnych kont jest zablokowana — panel jest tylko dla administratora.
+Konto administratora jest tworzone wyłącznie przez zmienne środowiskowe `ADMIN_EMAIL`,
+`ADMIN_PASSWORD` i opcjonalnie `ADMIN_NAME`. Jeśli któreś z nich brakuje, seed nie utworzy
+konta. Rejestracja nowych kont jest zablokowana.
 
 ## Panel CMS — edycja całej strony
 
