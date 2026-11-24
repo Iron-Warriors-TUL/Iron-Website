@@ -1,9 +1,10 @@
 'use client'
 
-import { contentAreaByKey, linesToString, type ContentArea, type Data } from '@/lib/content-registry'
+import { asLines, contentAreaByKey, linesToString, type ContentArea, type Data } from '@/lib/content-registry'
 import { AdminForm } from './admin-form'
 import { Checkbox, Field, inputClass } from './fields'
 import { ImageField } from './image-field'
+import { PeopleEditor } from './people-editor'
 import { deleteContentEntry, saveContent } from '@/app/iw-panel-7k2q/actions'
 
 export function ContentForm({
@@ -25,8 +26,11 @@ export function ContentForm({
       <AdminForm action={saveContent} submitLabel="Zapisz treść">
         <input type="hidden" name="area" value={areaKey} />
         <input type="hidden" name="entryKey" value={entryKey} />
-        {area.fields.map((field) =>
-          field.type === 'image' ? (
+        {area.fields.map((field) => {
+          if (areaKey === 'people' && field.name === 'items' && field.type === 'lines') {
+            return <PeopleEditor key={field.name} initial={asLines(data[field.name], field.columns.length)} />
+          }
+          return field.type === 'image' ? (
             <ImageField key={field.name} name={field.name} label={field.label} defaultValue={value(field.name)} />
           ) : (
           <Field key={field.name} label={field.label} htmlFor={`f-${field.name}`} hint={field.hint}>
@@ -68,7 +72,7 @@ export function ContentForm({
             )}
           </Field>
           )
-        )}
+        })}
       </AdminForm>
 
       <form action={deleteContentEntry} className="border-t border-border pt-4">
