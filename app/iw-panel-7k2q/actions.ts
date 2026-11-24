@@ -5,17 +5,18 @@ import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { put } from '@vercel/blob'
 import { z } from 'zod'
 import { db, pool } from '@/lib/db'
-import { navItems, posts, projects, siteContent, vehicles } from '@/lib/db/schema'
+import { navItems, posts, projects, siteContent, user, vehicles } from '@/lib/db/schema'
 import { contentAreaByKey, type Field } from '@/lib/content-registry'
 import { ADMIN_PATH, requireAdmin, requireCms } from '@/lib/admin'
 import { hashPassword } from 'better-auth/crypto'
 import { collectDescendantIds, validateNavParent } from '@/lib/navigation'
 import { hasValidImageSignature, imageExtension, MAX_IMAGE_BYTES } from '@/lib/upload'
 import { isHttpsUrl, isSafePath } from '@/lib/safe-url'
+import { isValidPageSlug } from '@/lib/page-slug'
 
 export type FormState = { error?: string; ok?: boolean }
 
@@ -78,6 +79,16 @@ function refresh() {
   revalidatePath('/', 'layout')
 }
 
+/* ---------- Preferencje ---------- */
+
+export async function saveTheme(theme: string) {
+  const session = await requireCms()
+  await db
+    .update(user)
+    .set({ theme: theme === 'dark' ? 'dark' : 'light', updatedAt: new Date() })
+    .where(eq(user.id, session.user.id))
+}
+
 const bool = (fd: FormData, key: string) => fd.get(key) === 'on'
 const s = (fd: FormData, key: string) => String(fd.get(key) ?? '')
 
@@ -90,9 +101,16 @@ const navSchema = z.object({
     .string()
     .transform((v) => (v === '' ? null : Number(v)))
     .pipe(z.number().int().positive().nullable()),
-  sortOrder: int,
   isButton: z.boolean(),
 })
+
+async function nextNavSortOrder(parentId: number | null, excludeId: number) {
+  const siblings = await db
+    .select({ id: navItems.id, sortOrder: navItems.sortOrder })
+    .from(navItems)
+    .where(parentId === null ? isNull(navItems.parentId) : eq(navItems.parentId, parentId))
+  return siblings.reduce((max, item) => (item.id === excludeId ? max : Math.max(max, item.sortOrder)), 0) + 10
+}
 
 export async function saveNavItem(_: FormState, fd: FormData): Promise<FormState> {
   await requireCms()
@@ -101,7 +119,6 @@ export async function saveNavItem(_: FormState, fd: FormData): Promise<FormState
       label: s(fd, 'label'),
       href: s(fd, 'href'),
       parentId: s(fd, 'parentId'),
-      sortOrder: s(fd, 'sortOrder') || '0',
       isButton: bool(fd, 'isButton'),
     })
     const rawId = s(fd, 'id')
@@ -110,16 +127,49 @@ export async function saveNavItem(_: FormState, fd: FormData): Promise<FormState
     const navError = validateNavParent(allItems, itemId, data.parentId)
     if (navError) return { error: navError }
 
+    const rawSortOrder = s(fd, 'sortOrder')
+    const sortOrder = rawSortOrder
+      ? int.parse(rawSortOrder)
+      : await nextNavSortOrder(data.parentId, itemId)
+
     if (rawId) {
-      await db.update(navItems).set(data).where(eq(navItems.id, itemId))
+      await db.update(navItems).set({ ...data, sortOrder }).where(eq(navItems.id, itemId))
     } else {
-      await db.insert(navItems).values(data)
+      await db.insert(navItems).values({ ...data, sortOrder })
     }
   } catch (e) {
     return fail(e)
   }
   refresh()
   return { ok: true }
+}
+
+export async function moveNavItem(fd: FormData) {
+  await requireCms()
+  const itemId = id.parse(s(fd, 'id'))
+  const direction = s(fd, 'direction') === 'up' ? -1 : 1
+  const items = await db
+    .select({ id: navItems.id, parentId: navItems.parentId, sortOrder: navItems.sortOrder })
+    .from(navItems)
+  const current = items.find((item) => item.id === itemId)
+  if (!current) return
+
+  const siblings = items
+    .filter((item) => item.parentId === current.parentId)
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+  const index = siblings.findIndex((item) => item.id === itemId)
+  const targetIndex = index + direction
+  if (index < 0 || targetIndex < 0 || targetIndex >= siblings.length) return
+
+  const reordered = [...siblings]
+  ;[reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]]
+
+  await db.transaction(async (tx) => {
+    for (const [position, item] of reordered.entries()) {
+      await tx.update(navItems).set({ sortOrder: position * 10 }).where(eq(navItems.id, item.id))
+    }
+  })
+  refresh()
 }
 
 export async function deleteNavItem(fd: FormData) {
@@ -322,6 +372,11 @@ export async function saveContent(_: FormState, fd: FormData): Promise<FormState
     if (!entryKey || entryKey.length > 120 || !/^[a-zA-Z0-9:_/-]+$/.test(entryKey)) {
       return { error: 'Nieprawidłowy klucz wpisu.' }
     }
+    if (areaKey === 'pages' && !isValidPageSlug(entryKey)) {
+      return {
+        error: 'Adres podstrony musi być slugiem (małe litery, cyfry, myślniki) i nie może kolidować z istniejącą trasą.',
+      }
+    }
 
     const data: Record<string, unknown> = {}
     for (const field of area.fields) data[field.name] = parseFieldValue(field, fd)
@@ -350,7 +405,13 @@ export async function addContentEntry(fd: FormData) {
   const entryKey = s(fd, 'entryKey').trim()
   const area = contentAreaByKey.get(areaKey)
   if (!area) return
-  if (!entryKey || entryKey.length > 120 || !/^[a-zA-Z0-9:_/-]+$/.test(entryKey)) return
+  const backToArea = `${ADMIN_PATH}/tresc/${areaKey}`
+  if (!entryKey || entryKey.length > 120 || !/^[a-zA-Z0-9:_/-]+$/.test(entryKey)) {
+    redirect(`${backToArea}?error=key`)
+  }
+  if (areaKey === 'pages' && !isValidPageSlug(entryKey)) {
+    redirect(`${backToArea}?error=slug`)
+  }
   await db
     .insert(siteContent)
     .values({ area: areaKey, entryKey, data: {} })

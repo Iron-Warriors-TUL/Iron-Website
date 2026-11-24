@@ -62,6 +62,33 @@
   --radius: 0.25rem;
 }
 
+/* Motyw ciemny panelu administracyjnego (klasa ustawiana przez ThemeToggle). */
+.dark {
+  color-scheme: dark;
+  --background: #101215;
+  --foreground: #a3a9b3;
+  --heading: #f1f3f6;
+  --header: #0c0d0f;
+  --footer: #0c0d0f;
+  --card: #191c21;
+  --card-foreground: #e6e9ee;
+  --popover: #191c21;
+  --popover-foreground: #e6e9ee;
+  --primary: #ee7423;
+  --primary-foreground: #ffffff;
+  --secondary: #24282e;
+  --secondary-foreground: #e6e9ee;
+  --muted: #24282e;
+  --muted-foreground: #969da8;
+  --accent: #ee7423;
+  --accent-foreground: #ffffff;
+  --destructive: #f0605c;
+  --border: #2e343b;
+  --input: #363d45;
+  --ring: #ee7423;
+  --brand-maroon: #8a2329;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
