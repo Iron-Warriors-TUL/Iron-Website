@@ -1,5 +1,7 @@
 import { betterAuth } from 'better-auth'
 import { APIError } from 'better-auth/api'
+import { twoFactor } from 'better-auth/plugins'
+import { passkey } from '@better-auth/passkey'
 import { pool } from '@/lib/db'
 
 const isV0Preview = Boolean(
@@ -10,7 +12,14 @@ const isV0Preview = Boolean(
 )
 
 export const auth = betterAuth({
+  appName: 'Iron Warriors CMS',
   database: pool,
+  plugins: [
+    twoFactor(),
+    // rpID/origin są wyliczane przez wtyczkę z baseURL — nie nadpisujemy ich
+    // ręcznie, żeby passkeye działały też poza localhost (np. na Vercel).
+    passkey({ rpName: 'Iron Warriors CMS' }),
+  ],
   baseURL:
     process.env.BETTER_AUTH_URL ??
     (process.env.VERCEL_PROJECT_PRODUCTION_URL
@@ -27,7 +36,8 @@ export const auth = betterAuth({
   user: {
     additionalFields: {
       // Rola jest ustawiana przez bazę; nie można jej zmienić z poziomu API.
-      role: { type: 'string', defaultValue: 'admin', input: false },
+      // Domyślnie najmniejsze uprawnienia (rejestracja i tak jest wyłączona).
+      role: { type: 'string', defaultValue: 'editor', input: false },
     },
   },
   trustedOrigins: [
@@ -42,6 +52,7 @@ export const auth = betterAuth({
       : []),
     ...(process.env.NODE_ENV === 'production'
       ? [
+          ...(process.env.BETTER_AUTH_URL ? [process.env.BETTER_AUTH_URL] : []),
           ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
           ...(process.env.VERCEL_PROJECT_PRODUCTION_URL
             ? [`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`]
@@ -67,13 +78,8 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
-        // Only the very first account (the bootstrap admin) may ever be created.
-        before: async (newUser) => {
-          const { rows } = await pool.query<{ count: string }>('SELECT count(*) FROM "user"')
-          if (Number(rows[0]?.count ?? 0) > 0) {
-            throw new APIError('FORBIDDEN', { message: 'Rejestracja jest wyłączona.' })
-          }
-          return { data: newUser }
+        before: async () => {
+          throw new APIError('FORBIDDEN', { message: 'Rejestracja jest wyłączona.' })
         },
       },
     },

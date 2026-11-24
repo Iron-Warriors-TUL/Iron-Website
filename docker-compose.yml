@@ -3,10 +3,12 @@ services:
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: iw_user
-      POSTGRES_PASSWORD: iw_dev_password
+      # Domyślne hasło dev — kontener startuje bez .env. Nadpisz w produkcji.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iw_dev_password}
       POSTGRES_DB: ironwarriors
     ports:
-      - "55432:5432"
+      # Baza dostępna tylko na localhost (dev), nie wystawiona publicznie.
+      - "127.0.0.1:55432:5432"
     volumes:
       - iw-postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -21,9 +23,13 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://iw_user:iw_dev_password@postgres:5432/ironwarriors
-      BETTER_AUTH_SECRET: local-development-secret-change-before-production
-      BETTER_AUTH_URL: http://localhost:3000
+      DATABASE_URL: postgresql://iw_user:${POSTGRES_PASSWORD:-iw_dev_password}@postgres:5432/ironwarriors
+      # Domyślny sekret dev — kontener startuje bez .env. Nadpisz w produkcji.
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-local-development-secret-change-before-production}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
+      ADMIN_NAME: ${ADMIN_NAME:-Administrator}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
     ports:
       - "3000:3000"
     volumes:

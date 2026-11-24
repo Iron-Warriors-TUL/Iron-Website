@@ -1,11 +1,10 @@
 import { redirect } from 'next/navigation'
-import { ADMIN_PATH, getAdminSession, hasAnyAdmin } from '@/lib/admin'
+import { ADMIN_PATH, getAdminSession } from '@/lib/admin'
 import { LoginForm } from '@/components/admin/login-form'
 import { FixedImage } from '@/components/site/smart-image'
 
 export default async function LoginPage() {
   if (await getAdminSession()) redirect(ADMIN_PATH)
-  const setup = !(await hasAnyAdmin())
 
   return (
     <div className="flex min-h-dvh items-center justify-center px-4">
@@ -18,11 +17,9 @@ export default async function LoginPage() {
           sizes="150px"
           className="mx-auto mb-6 h-12 w-auto"
         />
-        <h1 className="mb-1 text-center text-xl font-bold">{setup ? 'Utwórz konto administratora' : 'Logowanie'}</h1>
-        <p className="mb-6 text-center text-sm text-muted-foreground">
-          {setup ? 'Pierwsze i jedyne konto – rejestracja zostanie potem zablokowana.' : 'Panel zarządzania treścią'}
-        </p>
-        <LoginForm mode={setup ? 'setup' : 'login'} redirectTo={ADMIN_PATH} />
+        <h1 className="mb-1 text-center text-xl font-bold">Logowanie</h1>
+        <p className="mb-6 text-center text-sm text-muted-foreground">Panel zarządzania treścią</p>
+        <LoginForm redirectTo={ADMIN_PATH} />
       </div>
     </div>
   )

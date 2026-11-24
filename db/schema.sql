@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS "user" (
   "email" TEXT NOT NULL UNIQUE,
   "emailVerified" BOOLEAN NOT NULL DEFAULT FALSE,
   "image" TEXT,
-  "role" TEXT NOT NULL DEFAULT 'admin',
+  "role" TEXT NOT NULL DEFAULT 'editor',
   "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

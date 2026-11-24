@@ -144,9 +144,16 @@ Panel CMS: http://localhost:3000/iw-panel-7k2q/login
 
 | E-mail | Hasło |
 | --- | --- |
-| `admin@ironwarriors.local` | `IronWarriors2026!` |
+Konto startowe jest tworzone przez `db:seed` tylko wtedy, gdy ustawisz:
 
-Konto jest tworzone przez `db:seed`. Rejestracja nowych kont jest zablokowana.
+```env
+ADMIN_EMAIL=admin@example.com
+ADMIN_PASSWORD=<losowe-haslo-o-dlugosci-co-najmniej-12-znakow>
+ADMIN_NAME=Administrator
+```
+
+Bez `ADMIN_EMAIL` i `ADMIN_PASSWORD` seed nie utworzy żadnego konta.
+Rejestracja nowych kont w przeglądarce jest zablokowana.
 
 Wersja produkcyjna (wymaga działającej bazy przy budowie):
 
