@@ -5,11 +5,12 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@12.3.4 --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm install --frozen-lockfile
+# Chown tylko raz, w warstwie zależności — nie przy każdej zmianie kodu.
+RUN pnpm install --frozen-lockfile && chown -R node:node /app
 
-COPY . .
-
-RUN mkdir -p public/uploads && chown -R node:node /app
+# Pliki źródłowe od razu z właścicielem node (bez kosztownego chown -R 48k plików).
+COPY --chown=node:node . .
+RUN mkdir -p public/uploads && chown -R node:node public/uploads
 
 # Serwer produkcyjny (next start) — bez trybu deweloperskiego i bez uprawnień roota.
 ENV NODE_ENV=production
