@@ -2,18 +2,9 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { Paragraphs } from '@/components/site/section'
 import { FillImage } from '@/components/site/smart-image'
-import { getContent, getStoredContent } from '@/lib/content'
-import type { Data } from '@/lib/content-registry'
+import { getCustomPage } from '@/lib/content'
 
 type Props = { params: Promise<{ slug: string }> }
-
-async function getCustomPage(slug: string): Promise<Data | null> {
-  const stored = await getStoredContent('pages', slug)
-  if (!Object.keys(stored).length) return null
-  const page = await getContent('pages', slug)
-  if (page.published === false) return null
-  return page
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params

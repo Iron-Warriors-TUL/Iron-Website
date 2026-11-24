@@ -4,6 +4,7 @@ import { and, asc, eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { siteContent } from '@/lib/db/schema'
 import { defaultContent, defaultKeys, type Data } from '@/lib/content-registry'
+import { isValidPageSlug } from '@/lib/page-slug'
 
 /** Zwraca dane wpisu. Brakujące pola uzupełniają wartości domyślne z rejestru. */
 export const getContent = cache(async (area: string, entryKey = 'main'): Promise<Data> => {
@@ -76,4 +77,23 @@ export async function getStoredContent(area: string, entryKey: string): Promise<
     .where(and(eq(siteContent.area, area), eq(siteContent.entryKey, entryKey)))
     .limit(1)
   return row?.data ?? {}
+}
+
+/** Podstrona istnieje tylko wtedy, gdy ma zapisane dane i nie jest ukryta. */
+export async function getCustomPage(slug: string): Promise<Data | null> {
+  const stored = await getStoredContent('pages', slug)
+  if (Object.keys(stored).length === 0) return null
+  const page = { ...defaultContent('pages', slug), ...stored }
+  return page.published === false ? null : page
+}
+
+export async function getPublishedCustomPages(): Promise<{ slug: string; data: Data }[]> {
+  const keys = (await getEntryKeys('pages')).filter(isValidPageSlug)
+  const pages = await Promise.all(
+    keys.map(async (slug) => {
+      const data = await getCustomPage(slug)
+      return data ? { slug, data } : null
+    }),
+  )
+  return pages.filter((page): page is { slug: string; data: Data } => page !== null)
 }

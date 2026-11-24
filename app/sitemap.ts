@@ -1,20 +1,17 @@
 import type { MetadataRoute } from 'next'
 import { getPublishedPosts, getVehicles } from '@/lib/data'
-import { getContent, getEntryKeys } from '@/lib/content'
+import { getPublishedCustomPages } from '@/lib/content'
 import { partners, projectCategories, teams } from '@/lib/site-content'
 
 export const dynamic = 'force-dynamic'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = (process.env.BETTER_AUTH_URL ?? 'http://localhost:3000').replace(/\/$/, '')
-  const [vehicles, posts, pageKeys] = await Promise.all([
+  const [vehicles, posts, customPages] = await Promise.all([
     getVehicles(),
     getPublishedPosts(),
-    getEntryKeys('pages'),
+    getPublishedCustomPages(),
   ])
-  const customPages = (
-    await Promise.all(pageKeys.map(async (slug) => ({ slug, data: await getContent('pages', slug) })))
-  ).filter((page) => page.data.published !== false)
 
   const staticPaths = [
     '', '/bolidy', '/projekty', '/kontakt', '/dolacz-do-nas', '/zostan-partnerem', '/blog',

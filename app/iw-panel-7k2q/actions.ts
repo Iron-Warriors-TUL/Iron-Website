@@ -16,6 +16,7 @@ import { hashPassword } from 'better-auth/crypto'
 import { collectDescendantIds, validateNavParent } from '@/lib/navigation'
 import { hasValidImageSignature, imageExtension, MAX_IMAGE_BYTES } from '@/lib/upload'
 import { isHttpsUrl, isSafePath } from '@/lib/safe-url'
+import { isValidPageSlug } from '@/lib/page-slug'
 
 export type FormState = { error?: string; ok?: boolean }
 
@@ -371,6 +372,11 @@ export async function saveContent(_: FormState, fd: FormData): Promise<FormState
     if (!entryKey || entryKey.length > 120 || !/^[a-zA-Z0-9:_/-]+$/.test(entryKey)) {
       return { error: 'Nieprawidłowy klucz wpisu.' }
     }
+    if (areaKey === 'pages' && !isValidPageSlug(entryKey)) {
+      return {
+        error: 'Adres podstrony musi być slugiem (małe litery, cyfry, myślniki) i nie może kolidować z istniejącą trasą.',
+      }
+    }
 
     const data: Record<string, unknown> = {}
     for (const field of area.fields) data[field.name] = parseFieldValue(field, fd)
@@ -393,23 +399,6 @@ export async function saveContent(_: FormState, fd: FormData): Promise<FormState
   return { ok: true }
 }
 
-const PAGE_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
-const RESERVED_PAGE_SLUGS = new Set([
-  'blog',
-  'bolidy',
-  'projekty',
-  'kontakt',
-  'dolacz-do-nas',
-  'zostan-partnerem',
-  'rada-kol-naukowych-pl',
-  'iw-panel-7k2q',
-  'api',
-  'images',
-  'uploads',
-])
-const isReservedPageSlug = (slug: string) =>
-  RESERVED_PAGE_SLUGS.has(slug) || /^(zespol|partnerzy|projekty|eco-arrow)-/.test(slug)
-
 export async function addContentEntry(fd: FormData) {
   await requireCms()
   const areaKey = s(fd, 'area')
@@ -420,7 +409,7 @@ export async function addContentEntry(fd: FormData) {
   if (!entryKey || entryKey.length > 120 || !/^[a-zA-Z0-9:_/-]+$/.test(entryKey)) {
     redirect(`${backToArea}?error=key`)
   }
-  if (areaKey === 'pages' && (!PAGE_SLUG.test(entryKey) || isReservedPageSlug(entryKey))) {
+  if (areaKey === 'pages' && !isValidPageSlug(entryKey)) {
     redirect(`${backToArea}?error=slug`)
   }
   await db
