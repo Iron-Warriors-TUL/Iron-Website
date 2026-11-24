@@ -1,52 +1,38 @@
 'use client'
 
-import { useSyncExternalStore } from 'react'
+import { useTransition } from 'react'
 import { Moon, Sun } from 'lucide-react'
-
-const STORAGE_KEY = 'iw-admin-theme'
-const listeners = new Set<() => void>()
-
-function subscribe(listener: () => void) {
-  listeners.add(listener)
-  window.addEventListener('storage', listener)
-  return () => {
-    listeners.delete(listener)
-    window.removeEventListener('storage', listener)
-  }
-}
-
-function emit() {
-  for (const listener of listeners) listener()
-}
-
-function isDark() {
-  return document.documentElement.classList.contains('dark')
-}
+import { saveTheme } from '@/app/iw-panel-7k2q/actions'
+import { useAdminTheme } from './admin-theme-shell'
 
 export function ThemeToggle() {
-  const dark = useSyncExternalStore(subscribe, isDark, () => false)
+  const { theme, setTheme } = useAdminTheme()
+  const [pending, startTransition] = useTransition()
+  const dark = theme === 'dark'
 
   function toggleTheme() {
-    const nextDark = !isDark()
-    document.documentElement.classList.toggle('dark', nextDark)
-    try {
-      localStorage.setItem(STORAGE_KEY, nextDark ? 'dark' : 'light')
-    } catch {
-      // localStorage może być zablokowany — motyw nadal działa w tej sesji.
-    }
-    emit()
+    const next = dark ? 'light' : 'dark'
+    setTheme(next)
+    startTransition(async () => {
+      try {
+        await saveTheme(next)
+      } catch {
+        setTheme(dark ? 'dark' : 'light')
+      }
+    })
   }
 
   return (
     <button
       type="button"
       onClick={toggleTheme}
+      disabled={pending}
       aria-label={dark ? 'Przełącz na jasny motyw' : 'Przełącz na ciemny motyw'}
       aria-pressed={dark}
       title={dark ? 'Jasny motyw' : 'Ciemny motyw'}
-      className="fixed bottom-4 right-4 z-50 flex size-11 items-center justify-center rounded-full border border-border bg-card text-heading shadow-lg transition-colors hover:border-primary hover:text-primary"
+      className="inline-flex size-9 items-center justify-center rounded-sm border border-border bg-card text-heading transition-colors hover:border-primary hover:text-primary disabled:opacity-60"
     >
-      {dark ? <Sun className="size-5" aria-hidden="true" /> : <Moon className="size-5" aria-hidden="true" />}
+      {dark ? <Sun className="size-4" aria-hidden="true" /> : <Moon className="size-4" aria-hidden="true" />}
     </button>
   )
 }

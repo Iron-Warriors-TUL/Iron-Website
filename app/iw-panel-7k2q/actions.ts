@@ -9,7 +9,7 @@ import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { put } from '@vercel/blob'
 import { z } from 'zod'
 import { db, pool } from '@/lib/db'
-import { navItems, posts, projects, siteContent, vehicles } from '@/lib/db/schema'
+import { navItems, posts, projects, siteContent, user, vehicles } from '@/lib/db/schema'
 import { contentAreaByKey, type Field } from '@/lib/content-registry'
 import { ADMIN_PATH, requireAdmin, requireCms } from '@/lib/admin'
 import { hashPassword } from 'better-auth/crypto'
@@ -76,6 +76,16 @@ function fail(e: unknown): FormState {
 
 function refresh() {
   revalidatePath('/', 'layout')
+}
+
+/* ---------- Preferencje ---------- */
+
+export async function saveTheme(theme: string) {
+  const session = await requireCms()
+  await db
+    .update(user)
+    .set({ theme: theme === 'dark' ? 'dark' : 'light', updatedAt: new Date() })
+    .where(eq(user.id, session.user.id))
 }
 
 const bool = (fd: FormData, key: string) => fd.get(key) === 'on'
@@ -383,13 +393,36 @@ export async function saveContent(_: FormState, fd: FormData): Promise<FormState
   return { ok: true }
 }
 
+const PAGE_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const RESERVED_PAGE_SLUGS = new Set([
+  'blog',
+  'bolidy',
+  'projekty',
+  'kontakt',
+  'dolacz-do-nas',
+  'zostan-partnerem',
+  'rada-kol-naukowych-pl',
+  'iw-panel-7k2q',
+  'api',
+  'images',
+  'uploads',
+])
+const isReservedPageSlug = (slug: string) =>
+  RESERVED_PAGE_SLUGS.has(slug) || /^(zespol|partnerzy|projekty|eco-arrow)-/.test(slug)
+
 export async function addContentEntry(fd: FormData) {
   await requireCms()
   const areaKey = s(fd, 'area')
   const entryKey = s(fd, 'entryKey').trim()
   const area = contentAreaByKey.get(areaKey)
   if (!area) return
-  if (!entryKey || entryKey.length > 120 || !/^[a-zA-Z0-9:_/-]+$/.test(entryKey)) return
+  const backToArea = `${ADMIN_PATH}/tresc/${areaKey}`
+  if (!entryKey || entryKey.length > 120 || !/^[a-zA-Z0-9:_/-]+$/.test(entryKey)) {
+    redirect(`${backToArea}?error=key`)
+  }
+  if (areaKey === 'pages' && (!PAGE_SLUG.test(entryKey) || isReservedPageSlug(entryKey))) {
+    redirect(`${backToArea}?error=slug`)
+  }
   await db
     .insert(siteContent)
     .values({ area: areaKey, entryKey, data: {} })
