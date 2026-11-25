@@ -166,3 +166,84 @@ html {
     transition: none;
   }
 }
+
+/* ---------- Ekran ładowania (components/site/splash-screen.tsx) ---------- */
+
+/* Bez JavaScriptu ekran i tak znika po kilku sekundach. */
+@keyframes iw-splash-failsafe {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+.iw-splash {
+  animation: iw-splash-failsafe 0.4s ease-out 6s forwards;
+}
+
+/* Kropki krążące po okręgu jak przy starcie Windows 11. */
+.iw-spinner {
+  position: relative;
+  width: 56px;
+  height: 56px;
+}
+
+.iw-spinner span {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  animation: iw-orbit 4.4s infinite;
+  /* Ujemne opóźnienia: kropki krążą już w pierwszej klatce, a nie dołączają po kolei. */
+  animation-delay: -1.3s;
+}
+
+.iw-spinner span::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  border-radius: 9999px;
+  background: var(--color-primary);
+}
+
+.iw-spinner span:nth-child(2) { animation-delay: -1.06s; }
+.iw-spinner span:nth-child(3) { animation-delay: -0.82s; }
+.iw-spinner span:nth-child(4) { animation-delay: -0.58s; }
+.iw-spinner span:nth-child(5) { animation-delay: -0.34s; }
+
+@keyframes iw-orbit {
+  0% {
+    transform: rotate(225deg);
+    opacity: 1;
+    animation-timing-function: ease-out;
+  }
+  7% {
+    transform: rotate(345deg);
+    animation-timing-function: linear;
+  }
+  30% {
+    transform: rotate(455deg);
+    animation-timing-function: ease-in-out;
+  }
+  39% {
+    transform: rotate(690deg);
+    animation-timing-function: linear;
+  }
+  70% {
+    transform: rotate(815deg);
+    opacity: 1;
+    animation-timing-function: ease-out;
+  }
+  75% {
+    transform: rotate(945deg);
+    animation-timing-function: ease-out;
+  }
+  76%,
+  100% {
+    transform: rotate(945deg);
+    opacity: 0;
+  }
+}
