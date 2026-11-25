@@ -179,39 +179,58 @@ function EntryImages({ urls, alt }: { urls: string; alt: string }) {
 
 const DEFAULT_FUNDING_LOGO = '/images/logo-mnisw.png'
 
-/** Belka z informacją o dofinansowaniu wymaganą przez ministerstwo. Treść z CMS albo standardowa z pól projektu. */
-function FundingBar({ project }: { project: Project }) {
+/** Wiersze informacji o dofinansowaniu: własna treść z CMS albo standardowa z pól projektu. */
+function fundingLines(project: Project) {
   const custom = project.fundingBarText.trim()
-  const lines = custom
-    ? custom.split('\n').map((l) => l.trim()).filter(Boolean)
-    : [
-        'Dofinansowano ze środków budżetu państwa',
-        project.program && `w ramach programu ${project.program}`,
-        project.funding && `Kwota dofinansowania: ${project.funding}`,
-        project.totalValue && `Całkowita wartość: ${project.totalValue}`,
-        `Nazwa zadania: ${project.title}`,
-      ].filter((l): l is string => Boolean(l))
+  if (custom) return custom.split('\n').map((l) => l.trim()).filter(Boolean).map((text) => ({ label: '', value: text }))
+  return [
+    { label: '', value: 'Dofinansowano ze środków budżetu państwa' },
+    { label: 'Program', value: project.program },
+    { label: 'Kwota dofinansowania', value: project.funding },
+    { label: 'Wkład własny', value: project.ownContribution ?? '' },
+    { label: 'Całkowita wartość', value: project.totalValue ?? '' },
+  ].filter((line) => line.value)
+}
+
+/**
+ * Układ projektu z belką ministerstwa (wymóg informacyjny):
+ * na górze wyśrodkowana belka z logotypami, pod nią po lewej tytuł i treść, po prawej informacje o sezonie.
+ */
+function FundedProject({ project }: { project: Project }) {
+  const logos = project.imageUrls.trim() || project.fundingBarLogo || DEFAULT_FUNDING_LOGO
+  const lines = fundingLines(project)
   return (
-    <aside
-      aria-label="Informacja o dofinansowaniu"
-      className="flex flex-col items-center gap-4 border border-[#d9d9d9] bg-[#f5f5f5] px-5 py-4 text-center sm:flex-row sm:gap-6 sm:text-left"
-    >
-      <FixedImage
-        src={project.fundingBarLogo || DEFAULT_FUNDING_LOGO}
-        alt=""
-        width={1024}
-        height={319}
-        sizes="200px"
-        className="h-auto max-h-[64px] w-auto max-w-[200px] shrink-0 object-contain"
-      />
-      <div className="text-[14px] leading-[1.5] text-black">
-        {lines.map((line, i) => (
-          <p key={i} className={i === 0 ? 'font-semibold' : undefined}>
-            {line}
-          </p>
-        ))}
+    <article data-reveal className="flex flex-col gap-8">
+      <div
+        aria-label="Informacja o dofinansowaniu"
+        className="flex justify-center rounded-[6px] border border-[#d9d9d9] bg-white px-4 py-5 sm:px-8"
+      >
+        <EntryImages urls={logos} alt="Logotypy instytucji finansującej" />
       </div>
-    </aside>
+      <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_minmax(240px,320px)] md:gap-12">
+        <div className="flex min-w-0 flex-col gap-5">
+          <h3 className="text-[22px] font-semibold leading-[1.3] text-black md:text-[26px]">{project.title}</h3>
+          <Description text={project.description} />
+        </div>
+        <aside className="flex h-fit flex-col gap-3 border-t-[3px] border-primary bg-[#f5f5f5] p-5 text-[15px] leading-[1.5] text-black md:sticky md:top-[160px]">
+          {project.period && <p className="text-[20px] font-semibold">Sezon {project.period}</p>}
+          <dl className="flex flex-col gap-2">
+            {lines.map((line, i) =>
+              line.label ? (
+                <div key={i}>
+                  <dt className="text-[13px] text-[#666]">{line.label}</dt>
+                  <dd className="font-semibold">{line.value}</dd>
+                </div>
+              ) : (
+                <dd key={i} className="font-semibold">
+                  {line.value}
+                </dd>
+              ),
+            )}
+          </dl>
+        </aside>
+      </div>
+    </article>
   )
 }
 
@@ -263,15 +282,18 @@ export default async function ProjectCategoryPage({ params }: Props) {
             {projects.map((project, index) => (
               <div key={project.id}>
                 {index > 0 && <div className="my-[15px] h-[1.5px] w-full bg-[#999999]" />}
-                <article data-reveal className="flex flex-col gap-8">
-                  {project.imageUrls && <EntryImages urls={project.imageUrls} alt={project.title} />}
-                  <div className="flex flex-col gap-5">
-                    {project.heading && <EntryHeading text={project.heading} />}
-                    <ProjectTable project={project} fields={config.fields} />
-                    <Description text={project.description} />
-                  </div>
-                  {project.fundingBar && <FundingBar project={project} />}
-                </article>
+                {project.fundingBar ? (
+                  <FundedProject project={project} />
+                ) : (
+                  <article data-reveal className="flex flex-col gap-8">
+                    {project.imageUrls && <EntryImages urls={project.imageUrls} alt={project.title} />}
+                    <div className="flex flex-col gap-5">
+                      {project.heading && <EntryHeading text={project.heading} />}
+                      <ProjectTable project={project} fields={config.fields} />
+                      <Description text={project.description} />
+                    </div>
+                  </article>
+                )}
               </div>
             ))}
           </div>

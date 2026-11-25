@@ -64,16 +64,16 @@ export default async function ProjectEditor({ params }: { params: Promise<{ id: 
           <legend className="px-1 text-sm font-semibold">Belka ministerstwa (wymagana informacja o dofinansowaniu)</legend>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="fundingBar" defaultChecked={p?.fundingBar ?? false} className="size-4" />
-            Pokaż belkę pod tym projektem na stronie
+            Pokaż w układzie z belką: logotypy na górze, po lewej tytuł i opis, po prawej informacje o sezonie
           </label>
           <Field
-            label="Treść belki"
+            label="Informacje w prawej kolumnie"
             htmlFor="fundingBarText"
-            hint="Zostaw puste, aby użyć tekstu standardowego: „Dofinansowano ze środków budżetu państwa” + program, kwota dofinansowania, całkowita wartość i nazwa zadania z pól powyżej."
+            hint="Prawa kolumna. Zostaw puste, aby pokazać „Dofinansowano ze środków budżetu państwa”, program, kwoty i całkowitą wartość z pól powyżej. Jedna informacja na linię."
           >
             <textarea id="fundingBarText" name="fundingBarText" defaultValue={p?.fundingBarText ?? ''} rows={3} maxLength={2000} className={inputClass} />
           </Field>
-          <Field label="Logo / flaga na belce" htmlFor="fundingBarLogo" hint="Ścieżka do obrazka, np. /images/logo-mnisw.png. Puste = logo ministerstwa.">
+          <Field label="Logo na belce (zapasowe)" htmlFor="fundingBarLogo" hint="Używane, gdy pole „Obrazy” jest puste. Puste = logo ministerstwa.">
             <input id="fundingBarLogo" name="fundingBarLogo" defaultValue={p?.fundingBarLogo ?? ''} maxLength={2000} className={inputClass} />
           </Field>
         </fieldset>
