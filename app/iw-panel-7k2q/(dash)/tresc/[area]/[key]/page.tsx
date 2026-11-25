@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { contentAreaByKey } from '@/lib/content-registry'
-import { getEntryKeys, getStoredContent } from '@/lib/content'
+import { applyPageBlocks, getEntryKeys, getStoredContent } from '@/lib/content'
 import { ADMIN_PATH } from '@/lib/admin'
 import { BackLink } from '@/components/admin/list'
 import { ContentForm } from '@/components/admin/content-form'
@@ -19,7 +19,7 @@ export default async function ContentEntryPage({
   if (!keys.includes(key)) notFound()
 
   const stored = await getStoredContent(area, key)
-  const data = { ...definition.defaults(key), ...stored }
+  const data = await applyPageBlocks(area, key, { ...definition.defaults(key), ...stored })
   const label = definition.entryLabel?.(key, data) ?? definition.label
 
   return (

@@ -8,8 +8,13 @@ import { isHttpsUrl, isSafePath } from './safe-url'
 
 export type BlockType =
   | 'hero'
+  | 'pageHeader'
   | 'section'
   | 'about'
+  | 'vehicleFeature'
+  | 'partnerOffer'
+  | 'teamSeason'
+  | 'partnerSeason'
   | 'heading'
   | 'text'
   | 'image'
@@ -18,6 +23,9 @@ export type BlockType =
   | 'list'
   | 'features'
   | 'stats'
+  | 'specs'
+  | 'achievements'
+  | 'imageRow'
   | 'cta'
   | 'formCta'
   | 'contact'
@@ -33,6 +41,10 @@ export type Block = { id: string; type: BlockType } & Record<string, unknown>
 
 export type StatItem = { label: string; value: string; unit: string }
 
+export type SpecItem = { label: string; value: string }
+
+export type AchievementItem = { title: string; location: string; result: string; countryCode: string }
+
 export type CardItem = { image: string; title: string; text: string; href: string }
 
 type SelectOption = { value: string; label: string }
@@ -44,6 +56,8 @@ export type BlockField =
   | { name: string; label: string; type: 'image'; hint?: string }
   | { name: string; label: string; type: 'images'; hint?: string }
   | { name: string; label: string; type: 'stats'; hint?: string }
+  | { name: string; label: string; type: 'specs'; hint?: string }
+  | { name: string; label: string; type: 'achievements'; hint?: string }
   | { name: string; label: string; type: 'cards'; hint?: string }
 
 export type BlockDef = {
@@ -57,6 +71,7 @@ export type BlockDef = {
 const MAX_BLOCKS = 100
 const MAX_IMAGES = 24
 const MAX_STATS = 12
+const MAX_ROWS = 40
 
 export const BLOCKS: Record<BlockType, BlockDef> = {
   hero: {
@@ -68,6 +83,8 @@ export const BLOCKS: Record<BlockType, BlockDef> = {
       { name: 'subtitle', label: 'Podtytuł', type: 'textarea', rows: 3 },
       { name: 'image', label: 'Zdjęcie tła', type: 'image' },
       { name: 'videoId', label: 'Film w tle (ID YouTube)', type: 'text', hint: 'Np. dQw4w9WgXcQ. Ma pierwszeństwo przed zdjęciem.' },
+      { name: 'videoStart', label: 'Film — początek (s)', type: 'text', hint: 'Opcjonalnie, np. 0.' },
+      { name: 'videoEnd', label: 'Film — koniec (s)', type: 'text', hint: 'Opcjonalnie, np. 41.' },
       {
         name: 'overlay',
         label: 'Przyciemnienie tła',
@@ -86,10 +103,32 @@ export const BLOCKS: Record<BlockType, BlockDef> = {
       subtitle: '',
       image: '',
       videoId: '',
+      videoStart: '',
+      videoEnd: '',
       overlay: 'dark',
       ctaLabel: '',
       ctaHref: '',
     }),
+  },
+  pageHeader: {
+    type: 'pageHeader',
+    label: 'Nagłówek podstrony',
+    description: 'Tytuł, opis i zdjęcie w tle — początek podstrony.',
+    fields: [
+      { name: 'title', label: 'Tytuł', type: 'text' },
+      { name: 'subtitle', label: 'Opis', type: 'textarea', rows: 3 },
+      { name: 'image', label: 'Zdjęcie tła', type: 'image' },
+      {
+        name: 'align',
+        label: 'Wyrównanie',
+        type: 'select',
+        options: [
+          { value: 'left', label: 'Do lewej' },
+          { value: 'center', label: 'Do środka' },
+        ],
+      },
+    ],
+    defaults: () => ({ title: '', subtitle: '', image: '', align: 'left' }),
   },
   section: {
     type: 'section',
@@ -148,6 +187,83 @@ export const BLOCKS: Record<BlockType, BlockDef> = {
       galleryAlt: '',
       background: '',
       videoId: '',
+    }),
+  },
+  vehicleFeature: {
+    type: 'vehicleFeature',
+    label: 'Bolid — sekcja',
+    description: 'Nagłówek, parametry, opis i galeria jednego bolidu.',
+    fields: [
+      { name: 'slug', label: 'Slug bolidu (opcjonalnie)', type: 'text', hint: 'Np. eco-arrow-3. Puste = bieżąca sekcja bez powiązania.' },
+      { name: 'heading', label: 'Nagłówek', type: 'text' },
+      { name: 'background', label: 'Zdjęcie tła', type: 'image' },
+      { name: 'stats', label: 'Parametry', type: 'stats' },
+      { name: 'text', label: 'Opis', type: 'textarea', rows: 10 },
+      { name: 'gallery', label: 'Galeria', type: 'images' },
+    ],
+    defaults: () => ({ slug: '', heading: '', background: '', stats: [], text: '', gallery: [] }),
+  },
+  partnerOffer: {
+    type: 'partnerOffer',
+    label: 'Oferta dla partnerów',
+    description: 'Nagłówek, opis i przyciski oferty sponsorskiej oraz kontaktu.',
+    fields: [
+      { name: 'title', label: 'Tytuł', type: 'text' },
+      { name: 'image', label: 'Zdjęcie tła', type: 'image' },
+      { name: 'text', label: 'Opis', type: 'textarea', rows: 10 },
+      { name: 'offerLabel', label: 'Przycisk oferty — tekst', type: 'text' },
+      { name: 'contactLabel', label: 'Przycisk kontaktu — tekst', type: 'text' },
+      { name: 'contactHref', label: 'Przycisk kontaktu — link', type: 'url', placeholder: '/kontakt' },
+    ],
+    defaults: () => ({
+      title: '',
+      image: '',
+      text: '',
+      offerLabel: 'Oferta sponsorska',
+      contactLabel: 'Kontakt',
+      contactHref: '/kontakt',
+    }),
+  },
+  teamSeason: {
+    type: 'teamSeason',
+    label: 'Zespół — rocznik',
+    description: 'Nagłówek i składy wybranego rocznika z biblioteki osób.',
+    fields: [
+      { name: 'year', label: 'Rocznik', type: 'text', hint: 'Np. 2025-2026. Musi istnieć w obszarze „Zespoły – sekcje”.' },
+      { name: 'label', label: 'Etykieta rocznika', type: 'text' },
+      { name: 'intro', label: 'Opis', type: 'textarea', rows: 6 },
+      { name: 'heroBackground', label: 'Tło nagłówka', type: 'image' },
+      { name: 'overlay', label: 'Kolor nakładki (hex)', type: 'text' },
+      { name: 'seasonTag', label: 'Znacznik sezonu', type: 'select', options: [{ value: 'h2', label: 'H2' }, { value: 'h1', label: 'H1' }] },
+      { name: 'jumps', label: 'Przyciski skoków', type: 'textarea', rows: 6, hint: 'Każda linia: Etykieta | Id sekcji' },
+    ],
+    defaults: () => ({
+      year: '',
+      label: '',
+      intro: '',
+      heroBackground: '',
+      overlay: '#ffffffde',
+      seasonTag: 'h2',
+      jumps: '',
+    }),
+  },
+  partnerSeason: {
+    type: 'partnerSeason',
+    label: 'Partnerzy — rocznik',
+    description: 'Logotypy partnerów wybranego rocznika z katalogu partnerów.',
+    fields: [
+      { name: 'year', label: 'Rocznik', type: 'text', hint: 'Np. 2026. Musi istnieć w obszarze „Partnerzy – grupy”.' },
+      { name: 'background', label: 'Tło nagłówka', type: 'image' },
+      { name: 'bottomBackground', label: 'Tło dolnego paska', type: 'image' },
+      { name: 'overlay', label: 'Kolor nakładki (hex)', type: 'text' },
+      { name: 'plainImages', label: 'Zwykłe loga (bez kart)', type: 'checkbox' },
+    ],
+    defaults: () => ({
+      year: '',
+      background: '',
+      bottomBackground: '',
+      overlay: '#ffffffe8',
+      plainImages: false,
     }),
   },
   heading: {
@@ -311,6 +427,33 @@ export const BLOCKS: Record<BlockType, BlockDef> = {
     ],
     defaults: () => ({ heading: '', subheading: '', items: [], ctaLabel: '', ctaHref: '' }),
   },
+  specs: {
+    type: 'specs',
+    label: 'Tabela parametrów',
+    description: 'Lista par: etykieta i wartość (np. dane techniczne, informacje o projekcie).',
+    fields: [
+      { name: 'heading', label: 'Nagłówek (opcjonalnie)', type: 'text' },
+      { name: 'items', label: 'Wiersze', type: 'specs' },
+    ],
+    defaults: () => ({ heading: '', items: [] }),
+  },
+  achievements: {
+    type: 'achievements',
+    label: 'Osiągnięcia',
+    description: 'Karty z flagą, nazwą, miejscem i wynikiem.',
+    fields: [
+      { name: 'heading', label: 'Nagłówek (opcjonalnie)', type: 'text' },
+      { name: 'items', label: 'Osiągnięcia', type: 'achievements' },
+    ],
+    defaults: () => ({ heading: '', items: [] }),
+  },
+  imageRow: {
+    type: 'imageRow',
+    label: 'Rząd zdjęć / logotypów',
+    description: 'Zdjęcia lub loga wyświetlone obok siebie, bez karuzeli.',
+    fields: [{ name: 'images', label: 'Zdjęcia', type: 'images' }],
+    defaults: () => ({ images: [] }),
+  },
   cta: {
     type: 'cta',
     label: 'Wezwanie do działania',
@@ -398,6 +541,8 @@ export const BLOCKS: Record<BlockType, BlockDef> = {
       { name: 'slugs', label: 'Slugi bolidów', type: 'textarea', rows: 4, hint: 'Jeden slug w linii. Puste = wszystkie bolidy.' },
       { name: 'background', label: 'Zdjęcie tła', type: 'image' },
       { name: 'moreLabel', label: 'Etykieta przycisku', type: 'text' },
+      { name: 'summaries', label: 'Własne opisy bolidów', type: 'textarea', rows: 5, hint: 'Każda linia: slug | opis. Puste = pierwszy akapit opisu bolidu.' },
+      { name: 'galleries', label: 'Własne galerie bolidów', type: 'textarea', rows: 5, hint: 'Każda linia: slug | ścieżka zdjęcia. Puste = galeria z panelu „Bolidy”.' },
       { name: 'showGalleries', label: 'Pokaż galerie', type: 'checkbox' },
     ],
     defaults: () => ({
@@ -406,6 +551,8 @@ export const BLOCKS: Record<BlockType, BlockDef> = {
       slugs: '',
       background: '',
       moreLabel: 'Zobacz więcej',
+      summaries: '',
+      galleries: '',
       showGalleries: true,
     }),
   },
@@ -537,6 +684,37 @@ function sanitizeStats(raw: unknown, fallback: unknown): StatItem[] {
     })
 }
 
+function sanitizeSpecs(raw: unknown, fallback: unknown): SpecItem[] {
+  const source = Array.isArray(raw) ? raw : Array.isArray(fallback) ? fallback : []
+  return source
+    .slice(0, MAX_ROWS)
+    .flatMap((row) => {
+      if (!row || typeof row !== 'object') return []
+      const item = row as Record<string, unknown>
+      const label = typeof item.label === 'string' ? item.label.slice(0, 200) : ''
+      const value = typeof item.value === 'string' ? item.value.slice(0, 300) : ''
+      if (!label && !value) return []
+      return [{ label, value }]
+    })
+}
+
+function sanitizeAchievements(raw: unknown, fallback: unknown): AchievementItem[] {
+  const source = Array.isArray(raw) ? raw : Array.isArray(fallback) ? fallback : []
+  return source
+    .slice(0, MAX_ROWS)
+    .flatMap((row) => {
+      if (!row || typeof row !== 'object') return []
+      const item = row as Record<string, unknown>
+      const title = typeof item.title === 'string' ? item.title.slice(0, 300) : ''
+      const location = typeof item.location === 'string' ? item.location.slice(0, 200) : ''
+      const result = typeof item.result === 'string' ? item.result.slice(0, 300) : ''
+      const code = typeof item.countryCode === 'string' ? item.countryCode.toLowerCase() : ''
+      const countryCode = /^[a-z]{2}$/.test(code) ? code : ''
+      if (!title && !location && !result) return []
+      return [{ title, location, result, countryCode }]
+    })
+}
+
 function sanitizeCards(raw: unknown, fallback: unknown): CardItem[] {
   const source = Array.isArray(raw) ? raw : Array.isArray(fallback) ? fallback : []
   return source
@@ -570,6 +748,10 @@ function sanitizeField(field: BlockField, raw: unknown, fallback: unknown): unkn
       return sanitizeImages(raw, fallback)
     case 'stats':
       return sanitizeStats(raw, fallback)
+    case 'specs':
+      return sanitizeSpecs(raw, fallback)
+    case 'achievements':
+      return sanitizeAchievements(raw, fallback)
     case 'cards':
       return sanitizeCards(raw, fallback)
     case 'url': {
@@ -652,6 +834,38 @@ export function blockStats(block: Block, key: string): StatItem[] {
         label: typeof item.label === 'string' ? item.label : '',
         value: typeof item.value === 'string' ? item.value : '',
         unit: typeof item.unit === 'string' ? item.unit : '',
+      },
+    ]
+  })
+}
+
+export function blockSpecs(block: Block, key: string): SpecItem[] {
+  const value = block[key]
+  if (!Array.isArray(value)) return []
+  return value.flatMap((row) => {
+    if (!row || typeof row !== 'object') return []
+    const item = row as Record<string, unknown>
+    return [
+      {
+        label: typeof item.label === 'string' ? item.label : '',
+        value: typeof item.value === 'string' ? item.value : '',
+      },
+    ]
+  })
+}
+
+export function blockAchievements(block: Block, key: string): AchievementItem[] {
+  const value = block[key]
+  if (!Array.isArray(value)) return []
+  return value.flatMap((row) => {
+    if (!row || typeof row !== 'object') return []
+    const item = row as Record<string, unknown>
+    return [
+      {
+        title: typeof item.title === 'string' ? item.title : '',
+        location: typeof item.location === 'string' ? item.location : '',
+        result: typeof item.result === 'string' ? item.result : '',
+        countryCode: typeof item.countryCode === 'string' ? item.countryCode : '',
       },
     ]
   })

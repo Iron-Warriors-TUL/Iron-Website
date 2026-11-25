@@ -9,11 +9,11 @@ import { DeleteButton } from '@/components/admin/delete-button'
 import { Checkbox, Field, inputClass } from '@/components/admin/fields'
 import { BlockEditor } from '@/components/admin/block-editor'
 import { ImageField } from '@/components/admin/image-field'
-import { RichTextField } from '@/components/admin/rich-text-field'
 import { BackLink } from '@/components/admin/list'
 import { SlugField } from '@/components/admin/slug-field'
-
-const lines = (rows: Record<string, string>[], keys: string[]) => rows.map((r) => keys.map((k) => r[k] ?? '').join(' | ')).join('\n')
+import { getContent } from '@/lib/content'
+import { parseBlocks } from '@/lib/blocks'
+import { vehicleBlocks } from '@/lib/entity-blocks'
 
 export default async function VehicleEditor({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -22,6 +22,13 @@ export default async function VehicleEditor({ params }: { params: Promise<{ id: 
   if (!isNew && !Number.isInteger(numId)) notFound()
   const v = isNew ? null : (await db.select().from(vehicles).where(eq(vehicles.id, numId)).limit(1))[0]
   if (!isNew && !v) notFound()
+
+  const layout = v ? await getContent('vehicle-layout', v.slug) : {}
+  const gallery = (Array.isArray(layout.gallery) ? (layout.gallery as unknown[][]) : [])
+    .map((row) => String(row[0] ?? ''))
+    .filter(Boolean)
+  const stored = parseBlocks(v?.blocks)
+  const initialBlocks = v ? (stored.length > 0 ? stored : vehicleBlocks(v, gallery)) : []
 
   return (
     <div className="flex max-w-3xl flex-col gap-6">
@@ -48,24 +55,9 @@ export default async function VehicleEditor({ params }: { params: Promise<{ id: 
           <input id="bestResult" name="bestResult" defaultValue={v?.bestResult ?? ''} maxLength={200} className={inputClass} />
         </Field>
         <ImageField name="imageUrl" label="Zdjęcie" defaultValue={v?.imageUrl} />
-        <Field label="Opis" htmlFor="description">
-          <RichTextField id="description" name="description" defaultValue={v?.description} rows={8} />
-        </Field>
-        <Field label="Cel rozwoju" htmlFor="goal">
-          <input id="goal" name="goal" defaultValue={v?.goal} maxLength={1000} className={inputClass} />
-        </Field>
-        <Field label="Liczniki (statystyki)" htmlFor="stats" hint="Każda linia: etykieta | wartość | jednostka">
-          <textarea id="stats" name="stats" defaultValue={v ? lines(v.stats, ['label', 'value', 'unit']) : ''} rows={4} className={`${inputClass} font-mono`} />
-        </Field>
-        <Field label="Dane techniczne" htmlFor="specs" hint="Każda linia: parametr | wartość">
-          <textarea id="specs" name="specs" defaultValue={v ? lines(v.specs, ['label', 'value']) : ''} rows={8} className={`${inputClass} font-mono`} />
-        </Field>
-        <Field label="Osiągnięcia" htmlFor="achievements" hint="Każda linia: zawody | miejsce | wynik | kod flagi (pl, fr, gb, fi, nl)">
-          <textarea id="achievements" name="achievements" defaultValue={v ? lines(v.achievements, ['title', 'location', 'result', 'countryCode']) : ''} rows={6} className={`${inputClass} font-mono`} />
-        </Field>
         <Checkbox name="featured" label="Pokaż na stronie głównej" defaultChecked={v?.featured} />
         <section className="rounded-md border border-border bg-card p-4">
-          <BlockEditor initial={v?.blocks} />
+          <BlockEditor initial={initialBlocks} />
         </section>
       </AdminForm>
     </div>

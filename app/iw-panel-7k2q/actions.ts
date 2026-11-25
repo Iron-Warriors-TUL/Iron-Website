@@ -161,6 +161,9 @@ export async function deletePost(fd: FormData) {
 export async function saveVehicle(_: FormState, fd: FormData): Promise<FormState> {
   await requireCms()
   try {
+    const blocks = parseBlocks(s(fd, 'blocks'))
+    const textBlock = blocks.find((block) => block.type === 'text' && typeof block.text === 'string')
+    const quoteBlock = blocks.find((block) => block.type === 'quote' && typeof block.text === 'string')
     const data = {
       ...vehicleSchema.parse({
         slug: s(fd, 'slug'),
@@ -174,7 +177,9 @@ export async function saveVehicle(_: FormState, fd: FormData): Promise<FormState
         sortOrder: s(fd, 'sortOrder') || '0',
       }),
       ...parseVehicleLists(fd),
-      blocks: parseBlocks(s(fd, 'blocks')),
+      description: textBlock && typeof textBlock.text === 'string' ? textBlock.text : '',
+      goal: quoteBlock && typeof quoteBlock.text === 'string' ? quoteBlock.text : '',
+      blocks,
     }
     const rawId = s(fd, 'id')
     if (rawId) {

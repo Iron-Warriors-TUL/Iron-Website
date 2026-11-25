@@ -5,13 +5,16 @@ import {
   ArrowDown,
   ArrowUp,
   BarChart3,
+  CalendarDays,
   Car,
   ChevronDown,
   ChevronUp,
   ClipboardList,
   Contact,
   Copy,
+  FileText,
   FolderKanban,
+  Handshake,
   Heading,
   Image as ImageIcon,
   Images,
@@ -27,6 +30,7 @@ import {
   Quote,
   Sparkles,
   Trash2,
+  Trophy,
   Type,
   UploadCloud,
   Video,
@@ -36,16 +40,20 @@ import {
 import {
   BLOCKS,
   BLOCK_LIST,
+  blockAchievements,
   blockCards,
   blockImages,
+  blockSpecs,
   blockStats,
   blockStr,
   createBlock,
   parseBlocks,
+  type AchievementItem,
   type Block,
   type BlockField,
   type BlockType,
   type CardItem,
+  type SpecItem,
   type StatItem,
 } from '@/lib/blocks'
 import { imageMarkdown, parseInlineContent } from '@/lib/inline-content'
@@ -58,8 +66,13 @@ import { uploadImageFile } from './upload-image'
 
 const ICONS: Record<BlockType, LucideIcon> = {
   hero: Sparkles,
+  pageHeader: FileText,
   section: LayoutTemplate,
   about: Sparkles,
+  vehicleFeature: Car,
+  partnerOffer: Handshake,
+  teamSeason: CalendarDays,
+  partnerSeason: Handshake,
   heading: Heading,
   text: Type,
   image: ImageIcon,
@@ -68,6 +81,9 @@ const ICONS: Record<BlockType, LucideIcon> = {
   list: List,
   features: ListChecks,
   stats: BarChart3,
+  specs: ListChecks,
+  achievements: Trophy,
+  imageRow: Images,
   cta: MousePointerClick,
   formCta: ClipboardList,
   contact: Contact,
@@ -295,6 +311,122 @@ function StatsEditor({ value, onChange }: { value: StatItem[]; onChange: (items:
   )
 }
 
+function SpecsEditor({ value, onChange }: { value: SpecItem[]; onChange: (items: SpecItem[]) => void }) {
+  function update(index: number, patch: Partial<SpecItem>) {
+    onChange(value.map((item, i) => (i === index ? { ...item, ...patch } : item)))
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {value.map((item, index) => (
+        <div key={index} className="grid grid-cols-[1fr_1.4fr_auto] items-center gap-2">
+          <input
+            value={item.label}
+            onChange={(event) => update(index, { label: event.target.value })}
+            placeholder="Etykieta"
+            aria-label="Etykieta"
+            className={inputClass}
+          />
+          <input
+            value={item.value}
+            onChange={(event) => update(index, { value: event.target.value })}
+            placeholder="Wartość"
+            aria-label="Wartość"
+            className={inputClass}
+          />
+          <button
+            type="button"
+            onClick={() => onChange(value.filter((_, i) => i !== index))}
+            aria-label="Usuń wiersz"
+            className="rounded-sm p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+          >
+            <Trash2 className="size-4" aria-hidden="true" />
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => onChange([...value, { label: '', value: '' }])}
+        className="inline-flex w-fit items-center gap-2 rounded-sm border border-border px-3 py-1.5 text-sm font-medium hover:bg-secondary"
+      >
+        <Plus className="size-4" aria-hidden="true" />
+        Dodaj wiersz
+      </button>
+    </div>
+  )
+}
+
+function AchievementsEditor({
+  value,
+  onChange,
+}: {
+  value: AchievementItem[]
+  onChange: (items: AchievementItem[]) => void
+}) {
+  function update(index: number, patch: Partial<AchievementItem>) {
+    onChange(value.map((item, i) => (i === index ? { ...item, ...patch } : item)))
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {value.map((item, index) => (
+        <div key={index} className="flex flex-col gap-2 rounded-md border border-border bg-background p-3">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-medium text-muted-foreground">Osiągnięcie {index + 1}</span>
+            <button
+              type="button"
+              onClick={() => onChange(value.filter((_, i) => i !== index))}
+              aria-label="Usuń osiągnięcie"
+              className="rounded-sm p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+            >
+              <Trash2 className="size-4" aria-hidden="true" />
+            </button>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input
+              value={item.title}
+              onChange={(event) => update(index, { title: event.target.value })}
+              placeholder="Zawody / tytuł"
+              aria-label="Zawody"
+              className={inputClass}
+            />
+            <input
+              value={item.location}
+              onChange={(event) => update(index, { location: event.target.value })}
+              placeholder="Miejsce"
+              aria-label="Miejsce"
+              className={inputClass}
+            />
+            <input
+              value={item.result}
+              onChange={(event) => update(index, { result: event.target.value })}
+              placeholder="Wynik"
+              aria-label="Wynik"
+              className={inputClass}
+            />
+            <input
+              value={item.countryCode}
+              onChange={(event) => update(index, { countryCode: event.target.value })}
+              placeholder="Kod flagi (pl, fr, gb…)"
+              aria-label="Kod flagi"
+              maxLength={2}
+              className={inputClass}
+            />
+          </div>
+        </div>
+      ))}
+      <button
+        type="button"
+        onClick={() => onChange([...value, { title: '', location: '', result: '', countryCode: '' }])}
+        className="inline-flex w-fit items-center gap-2 rounded-sm border border-border px-3 py-1.5 text-sm font-medium hover:bg-secondary"
+      >
+        <Plus className="size-4" aria-hidden="true" />
+        Dodaj osiągnięcie
+      </button>
+    </div>
+  )
+}
+
 function CardsEditor({
   value,
   onChange,
@@ -431,6 +563,22 @@ function BlockFieldInput({
     return (
       <BlockFieldBox field={field}>
         <StatsEditor value={blockStats(block, field.name)} onChange={onChange} />
+      </BlockFieldBox>
+    )
+  }
+
+  if (field.type === 'specs') {
+    return (
+      <BlockFieldBox field={field}>
+        <SpecsEditor value={blockSpecs(block, field.name)} onChange={onChange} />
+      </BlockFieldBox>
+    )
+  }
+
+  if (field.type === 'achievements') {
+    return (
+      <BlockFieldBox field={field}>
+        <AchievementsEditor value={blockAchievements(block, field.name)} onChange={onChange} />
       </BlockFieldBox>
     )
   }
