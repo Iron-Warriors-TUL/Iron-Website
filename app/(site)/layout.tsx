@@ -16,7 +16,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
         <style>{'.iw-splash{display:none}'}</style>
       </noscript>
       <Navbar />
-      <main className="pt-[104px] min-[768px]:pt-[122px] min-[1200px]:pt-[146px]">
+      <main className="pt-[100px] min-[768px]:pt-[118px] min-[1200px]:pt-[142px]">
         <PageMotion>{children}</PageMotion>
       </main>
       <Footer />
