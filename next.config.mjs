@@ -36,6 +36,8 @@ const nextConfig = {
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
+      // Osadzone filmy (tło strony głównej, bolidy) i mapa na stronie kontaktowej.
+      "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://maps.google.com https://www.google.com",
       `connect-src 'self' https:${isDev ? ' ws: wss:' : ''}`,
       "frame-ancestors 'self'",
       "base-uri 'self'",
