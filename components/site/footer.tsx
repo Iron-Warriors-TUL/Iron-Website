@@ -74,7 +74,7 @@ export async function Footer() {
 
           <div className="flex flex-col items-center gap-4">
             <h2 className="text-xs font-semibold text-white">SOCIAL MEDIA</h2>
-            <ul className="flex flex-wrap justify-center gap-[10px]">
+            <ul className="flex flex-wrap justify-center gap-6">
               {socials.map(({ label, href, Icon }) => (
                 <li key={label}>
                   <a
@@ -82,9 +82,9 @@ export async function Footer() {
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label={label}
-                    className="inline-flex size-14 items-center justify-center rounded-[10%] bg-[#2b2a2a] text-white transition-colors hover:bg-primary"
+                    className="inline-flex size-10 items-center justify-center text-white transition-[color,transform] duration-200 hover:scale-110 hover:text-primary"
                   >
-                    <Icon className="size-7" />
+                    <Icon className="size-8" />
                   </a>
                 </li>
               ))}
