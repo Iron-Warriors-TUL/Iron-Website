@@ -10,6 +10,13 @@ type BackdropProps = {
   className?: string
 }
 
+/**
+ * Proporcje obrazu w filmie tła. Film na YouTube ma ramkę 16:9, ale sam obraz jest
+ * kinowy (~2.5:1) z wbudowanymi czarnymi pasami u góry i dołu. Skalujemy iframe tak,
+ * żeby to właśnie obraz (a nie ramka z pasami) pokrywał sekcję. +2% zapasu chowa krawędzie.
+ */
+const CONTENT_RATIO = 2.5
+
 /** Odtwarzacz YouTube używany jako tło sekcji - zawsze niemy i zapętlony. */
 export function YouTubeBackdrop({ videoId, start, end, poster, className }: BackdropProps) {
   const params = new URLSearchParams({
@@ -30,7 +37,13 @@ export function YouTubeBackdrop({ videoId, start, end, poster, className }: Back
   if (end !== undefined) params.set('end', String(end))
 
   return (
-    <div className={cn('pointer-events-none absolute inset-0 overflow-hidden', className)} aria-hidden="true">
+    // container-type: size pozwala liczyć wymiary filmu względem sekcji (cqw/cqh), a nie okna:
+    // film 16:9 zawsze ją pokrywa (jak object-fit: cover), bez czarnych pasów.
+    <div
+      className={cn('pointer-events-none absolute inset-0 overflow-hidden', className)}
+      style={{ containerType: 'size' }}
+      aria-hidden="true"
+    >
       {poster && (
         <div
           className="absolute inset-0 bg-cover bg-center"
@@ -39,7 +52,7 @@ export function YouTubeBackdrop({ videoId, start, end, poster, className }: Back
       )}
       <iframe
         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border-0"
-        style={{ width: 'max(100%, 177.7778vh)', height: 'max(100%, 56.25vw)' }}
+        style={{ width: `max(102cqw, ${CONTENT_RATIO * 102}cqh)`, height: `max(${CONTENT_RATIO * 102 * 0.5625}cqh, 57.375cqw)` }}
         src={`https://www.youtube.com/embed/${videoId}?${params.toString()}`}
         title=""
         tabIndex={-1}
