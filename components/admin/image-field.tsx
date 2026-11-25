@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import { uploadImage } from '@/app/iw-panel-7k2q/actions'
 import { inputClass } from './fields'
 import { FixedImage } from '@/components/site/smart-image'
@@ -9,6 +9,16 @@ export function ImageField({ name, label, defaultValue }: { name: string; label:
   const [url, setUrl] = useState(defaultValue ?? '')
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  // Po wyczyszczeniu formularza (np. po dodaniu partnera) wraca wartość początkowa.
+  useEffect(() => {
+    const form = rootRef.current?.closest('form')
+    if (!form) return
+    const onReset = () => setUrl(defaultValue ?? '')
+    form.addEventListener('reset', onReset)
+    return () => form.removeEventListener('reset', onReset)
+  }, [defaultValue])
 
   function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -25,7 +35,7 @@ export function ImageField({ name, label, defaultValue }: { name: string; label:
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div ref={rootRef} className="flex flex-col gap-1.5">
       <label htmlFor={name} className="text-sm font-medium">
         {label}
       </label>

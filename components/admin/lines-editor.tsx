@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
-import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react'
+import { useState, useTransition } from 'react'
+import { ArrowDown, ArrowUp, Plus, Trash2, Upload } from 'lucide-react'
+import { uploadImage } from '@/app/iw-panel-7k2q/actions'
 import { inputClass } from './fields'
 
 /** Opcja listy wyboru: wartość zapisywana w treści i nazwa widoczna dla redaktora. */
@@ -46,6 +47,40 @@ function nextId(rows: string[][], col: number) {
     max = Math.max(max, Number(match[2]))
   }
   return `${prefix}${String(max + 1).padStart(width, '0')}`
+}
+
+/** Przycisk „Prześlij” przy ścieżce obrazu w wierszu listy. */
+function UploadButton({ onUploaded }: { onUploaded: (url: string) => void }) {
+  const [pending, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+  return (
+    <label
+      title={error ?? 'Prześlij plik'}
+      className={`flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-sm border ${error ? 'border-destructive text-destructive' : 'border-border text-muted-foreground'} hover:border-primary hover:text-primary`}
+    >
+      <Upload className={`size-4 ${pending ? 'animate-pulse' : ''}`} aria-hidden="true" />
+      <span className="sr-only">{pending ? 'Przesyłanie…' : 'Prześlij plik'}</span>
+      <input
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/avif"
+        disabled={pending}
+        className="sr-only"
+        onChange={(event) => {
+          const file = event.target.files?.[0]
+          event.target.value = ''
+          if (!file) return
+          const fd = new FormData()
+          fd.append('file', file)
+          setError(null)
+          startTransition(async () => {
+            const res = await uploadImage(fd)
+            if (res.url) onUploaded(res.url)
+            else setError(res.error ?? 'Błąd przesyłania')
+          })
+        }}
+      />
+    </label>
+  )
 }
 
 function isPreviewable(src: string) {
@@ -112,8 +147,8 @@ export function LinesEditor({
                 const value = row[c] ?? ''
                 const id = `${name}-${r}-${c}`
                 return (
-                  <label key={column} htmlFor={id} className="flex min-w-0 flex-col gap-1 text-xs text-muted-foreground">
-                    {!single && <span>{column}</span>}
+                  <div key={column} className="flex min-w-0 flex-col gap-1 text-xs text-muted-foreground">
+                    {single ? null : <label htmlFor={id}>{column}</label>}
                     {kind.kind === 'autoId' ? (
                       <input id={id} value={value} readOnly className={`${inputClass} bg-secondary font-mono text-xs`} />
                     ) : kind.kind === 'select' ? (
@@ -141,11 +176,12 @@ export function LinesEditor({
                           placeholder="/images/…"
                           className={`${inputClass} font-mono text-xs`}
                         />
+                        <UploadButton onUploaded={(url) => setCell(r, c, url)} />
                       </span>
                     ) : (
                       <input id={id} value={value} onChange={(e) => setCell(r, c, e.target.value)} className={inputClass} />
                     )}
-                  </label>
+                  </div>
                 )
               })}
             </div>

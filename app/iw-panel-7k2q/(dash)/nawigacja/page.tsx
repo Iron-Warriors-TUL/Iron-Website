@@ -141,7 +141,7 @@ export default async function NavAdminPage({
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-3xl font-bold">Nawigacja</h1>
+        <h1 className="text-3xl font-bold">Menu strony</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Ułóż menu w strukturze drzewa: elementy główne i ich podelementy. Kolejność zmieniasz strzałkami,
           a edycja otwiera tylko jeden formularz — bez przewijania dziesiątek pól.

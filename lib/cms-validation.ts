@@ -9,7 +9,7 @@ import { isHttpsUrl, isSafePath } from './safe-url'
  * app/iw-panel-7k2q/actions.ts tylko z tego korzystają.
  */
 
-export type FormState = { error?: string; ok?: boolean }
+export type FormState = { error?: string; ok?: boolean; message?: string }
 
 const str = (max: number) => z.string().trim().max(max)
 const optStr = (max: number) =>

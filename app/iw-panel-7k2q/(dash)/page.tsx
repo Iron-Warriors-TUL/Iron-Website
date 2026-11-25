@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { BookOpen, CalendarPlus, Car, FilePlus2, FolderPlus, Handshake, PencilLine } from 'lucide-react'
 import { count } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { navItems, posts, projects, siteContent, vehicles } from '@/lib/db/schema'
@@ -25,6 +26,15 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     { label: 'Bolidy', value: v.c, href: `${ADMIN_PATH}/bolidy` },
     { label: 'Projekty', value: pr.c, href: `${ADMIN_PATH}/projekty` },
   ]
+  const actions = [
+    { label: 'Zmień tekst lub zdjęcie', href: `${ADMIN_PATH}/tresc`, icon: PencilLine },
+    { label: 'Dodaj wpis na blog', href: `${ADMIN_PATH}/blog/nowy`, icon: FilePlus2 },
+    { label: 'Dodaj partnera', href: `${ADMIN_PATH}/partnerzy`, icon: Handshake },
+    { label: 'Dodaj bolid', href: `${ADMIN_PATH}/bolidy/nowy`, icon: Car },
+    { label: 'Dodaj projekt', href: `${ADMIN_PATH}/projekty/nowy`, icon: FolderPlus },
+    ...(isAdmin ? [{ label: 'Nowy sezon', href: `${ADMIN_PATH}/partnerzy#nowy-sezon`, icon: CalendarPlus }] : []),
+    { label: 'Instrukcja obsługi', href: `${ADMIN_PATH}/instrukcja`, icon: BookOpen },
+  ]
   return (
     <div className="flex flex-col gap-6">
       <div>
@@ -38,6 +48,22 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           Ta sekcja jest dostępna tylko dla administratora.
         </p>
       )}
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-semibold">Co chcesz zrobić?</h2>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+          {actions.map(({ label, href, icon: Icon }) => (
+            <Link
+              key={label}
+              href={href}
+              className="flex flex-col items-start gap-3 rounded-md border border-border bg-card p-4 transition-colors hover:border-primary hover:text-primary"
+            >
+              <Icon className="size-6 text-primary" aria-hidden="true" />
+              <span className="text-sm font-semibold">{label}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+      <h2 className="text-lg font-semibold">Na stronie</h2>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((c) => (
           <Link key={c.label} href={c.href} className="rounded-md border border-border bg-card p-5 transition-colors hover:border-primary">
