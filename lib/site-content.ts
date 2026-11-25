@@ -662,8 +662,8 @@ export const partners: PartnerYear[] = [
           columns: 4,
           height: 240,
           items: [
-            oiz, chemia, wipos, p('WEEIA PŁ', '/images/WEEIA_Logo.png', '#'), cti,
-            p('AVL', '/images/default-logo@3x.png', '#'), wwiw,
+            oiz, chemia, wipos, p('WEEIA PŁ', '/images/WEEIA_Logo.png', 'https://weeia.p.lodz.pl/'), cti,
+            p('AVL', '/images/default-logo@3x.png', 'https://www.avl.com/'), wwiw,
           ],
         }],
       },
