@@ -29,20 +29,20 @@ export function DesktopNav({ nav }: { nav: NavNode[] }) {
   }
 
   return (
-    <nav aria-label="Główna nawigacja" className="hidden h-full w-full min-[768px]:flex">
-      <ul className="flex w-full flex-wrap items-stretch justify-end">
+    <nav aria-label="Główna nawigacja" className="hidden h-full w-full min-[1100px]:flex">
+      <ul className="flex w-full flex-nowrap items-center justify-end">
         {nav.map((item, index) => {
           const active = isActive(pathname, item.href)
           const childActive = item.children.some((child) => isActive(pathname, child.href))
           const labelClass = cn(
-            'flex h-[42.8px] items-center px-[15px] font-heading text-[12.8px] font-semibold uppercase text-white transition-colors duration-300 hover:text-[#f08400] min-[1025px]:h-[46px] min-[1025px]:text-base',
+            'flex h-[42.8px] items-center whitespace-nowrap px-[8px] font-heading text-[12.8px] font-semibold uppercase text-white transition-colors duration-300 hover:text-[#f08400] min-[1025px]:h-[46px] min-[1025px]:px-[10px] min-[1025px]:text-sm min-[1280px]:px-[13px] min-[1280px]:text-base',
             (active || childActive) && '!text-primary',
           )
 
           return (
             <li
               key={item.id}
-              className={cn('relative', item.isButton && 'ml-[15px]')}
+              className={cn('relative shrink-0', item.isButton && 'ml-[8px] min-[1280px]:ml-[15px]')}
               onMouseEnter={() => {
                 if (!item.isButton && item.children.length > 0) setOpenIndex(index)
               }}
@@ -54,7 +54,7 @@ export function DesktopNav({ nav }: { nav: NavNode[] }) {
                   onClick={onLinkClick(item.href)}
                   className={cn(
                     labelClass,
-                    'h-[42.8px] w-[127.3px] justify-center rounded-[3px] bg-primary px-0 font-bold text-white hover:bg-[#7a7a7a] hover:text-white min-[1025px]:h-[43px] min-[1025px]:w-[174.5px] min-[1025px]:px-[30px]',
+                    'h-[42.8px] justify-center rounded-[3px] bg-primary px-[14px] font-bold text-white hover:bg-[#7a7a7a] hover:text-white min-[1025px]:h-[43px] min-[1280px]:px-[30px]',
                   )}
                 >
                   {item.label}

@@ -22,8 +22,8 @@ export function HeaderShell({ logo, navigation }: { logo: ReactNode; navigation:
       )}
     >
       <div className="mx-auto flex h-full w-full max-w-[1218px] items-stretch px-[10px] py-[5px] min-[1025px]:px-[50px] min-[1025px]:py-[15px]">
-        <div className="flex w-[33%] items-center min-[1025px]:w-[20%]">{logo}</div>
-        <div className="flex w-[67%] items-stretch justify-end min-[1025px]:w-[80%]">{navigation}</div>
+        <div className="flex w-[33%] shrink-0 items-center min-[768px]:w-[240px] min-[1100px]:w-[200px]">{logo}</div>
+        <div className="flex min-w-0 flex-1 items-stretch justify-end">{navigation}</div>
       </div>
     </header>
   )

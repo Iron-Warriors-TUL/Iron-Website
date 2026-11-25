@@ -7,73 +7,34 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { put } from '@vercel/blob'
-import { z } from 'zod'
 import { db, pool } from '@/lib/db'
 import { navItems, posts, projects, siteContent, user, vehicles } from '@/lib/db/schema'
-import { contentAreaByKey, type Field } from '@/lib/content-registry'
+import { contentAreaByKey } from '@/lib/content-registry'
 import { ADMIN_PATH, requireAdmin, requireCms } from '@/lib/admin'
 import { hashPassword } from 'better-auth/crypto'
 import { collectDescendantIds, validateNavParent } from '@/lib/navigation'
 import { hasValidImageSignature, imageExtension, MAX_IMAGE_BYTES } from '@/lib/upload'
-import { isHttpsUrl, isSafePath } from '@/lib/safe-url'
 import { isValidPageSlug } from '@/lib/page-slug'
+import {
+  bool,
+  ContentFieldError,
+  fail,
+  id,
+  int,
+  isValidEntryKey,
+  navSchema,
+  parseAccountInput,
+  parseFieldValue,
+  parseVehicleLists,
+  postSchema,
+  projectSchema,
+  reorderNavSiblings,
+  s,
+  vehicleSchema,
+  type FormState,
+} from '@/lib/cms-validation'
 
-export type FormState = { error?: string; ok?: boolean }
-
-const str = (max: number) => z.string().trim().max(max)
-const optStr = (max: number) =>
-  z
-    .string()
-    .trim()
-    .max(max)
-    .transform((v) => (v === '' ? null : v))
-const slug = z
-  .string()
-  .trim()
-  .toLowerCase()
-  .min(1, 'Slug jest wymagany')
-  .max(120)
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug: tylko małe litery, cyfry i myślniki')
-// Ścieżka lokalna: pojedynczy '/' na początku (odrzuca protokołowo-względne '//host').
-// Zewnętrzne adresy wyłącznie po HTTPS.
-const imageUrl = z
-  .string()
-  .trim()
-  .max(2000)
-  .refine((v) => v === '' || isSafePath(v) || isHttpsUrl(v), 'Nieprawidłowy adres obrazu')
-  .transform((v) => (v === '' ? null : v))
-const href = z
-  .string()
-  .trim()
-  .min(1)
-  .max(500)
-  .refine(
-    (v) => isSafePath(v) || v.startsWith('#') || isHttpsUrl(v),
-    'Link musi być ścieżką (/...), kotwicą (#...) lub adresem https://',
-  )
-const int = z.coerce.number().int().min(-100000).max(100000)
-const id = z.coerce.number().int().positive()
-
-function pipeLines(raw: string, size: number) {
-  return raw
-    .split('\n')
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .slice(0, 50)
-    .map((l) => {
-      const parts = l.split('|').map((p) => p.trim().slice(0, 300))
-      while (parts.length < size) parts.push('')
-      return parts.slice(0, size)
-    })
-}
-
-function fail(e: unknown): FormState {
-  if (e instanceof z.ZodError) return { error: e.issues[0]?.message ?? 'Nieprawidłowe dane' }
-  if (e instanceof Error && 'code' in e && (e as { code?: string }).code === '23505')
-    return { error: 'Taki slug już istnieje.' }
-  console.error('[cms] action error', e)
-  return { error: 'Nie udało się zapisać zmian.' }
-}
+export type { FormState }
 
 function refresh() {
   revalidatePath('/', 'layout')
@@ -89,20 +50,7 @@ export async function saveTheme(theme: string) {
     .where(eq(user.id, session.user.id))
 }
 
-const bool = (fd: FormData, key: string) => fd.get(key) === 'on'
-const s = (fd: FormData, key: string) => String(fd.get(key) ?? '')
-
 /* ---------- Navigation ---------- */
-
-const navSchema = z.object({
-  label: str(60).min(1, 'Etykieta jest wymagana'),
-  href,
-  parentId: z
-    .string()
-    .transform((v) => (v === '' ? null : Number(v)))
-    .pipe(z.number().int().positive().nullable()),
-  isButton: z.boolean(),
-})
 
 async function nextNavSortOrder(parentId: number | null, excludeId: number) {
   const siblings = await db
@@ -147,26 +95,15 @@ export async function saveNavItem(_: FormState, fd: FormData): Promise<FormState
 export async function moveNavItem(fd: FormData) {
   await requireCms()
   const itemId = id.parse(s(fd, 'id'))
-  const direction = s(fd, 'direction') === 'up' ? -1 : 1
   const items = await db
     .select({ id: navItems.id, parentId: navItems.parentId, sortOrder: navItems.sortOrder })
     .from(navItems)
-  const current = items.find((item) => item.id === itemId)
-  if (!current) return
-
-  const siblings = items
-    .filter((item) => item.parentId === current.parentId)
-    .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
-  const index = siblings.findIndex((item) => item.id === itemId)
-  const targetIndex = index + direction
-  if (index < 0 || targetIndex < 0 || targetIndex >= siblings.length) return
-
-  const reordered = [...siblings]
-  ;[reordered[index], reordered[targetIndex]] = [reordered[targetIndex], reordered[index]]
+  const reordered = reorderNavSiblings(items, itemId, s(fd, 'direction') === 'up' ? 'up' : 'down')
+  if (!reordered) return
 
   await db.transaction(async (tx) => {
-    for (const [position, item] of reordered.entries()) {
-      await tx.update(navItems).set({ sortOrder: position * 10 }).where(eq(navItems.id, item.id))
+    for (const item of reordered) {
+      await tx.update(navItems).set({ sortOrder: item.sortOrder }).where(eq(navItems.id, item.id))
     }
   })
   refresh()
@@ -182,16 +119,6 @@ export async function deleteNavItem(fd: FormData) {
 }
 
 /* ---------- Blog posts ---------- */
-
-const postSchema = z.object({
-  slug,
-  title: str(200).min(1, 'Tytuł jest wymagany'),
-  excerpt: str(500),
-  content: str(50000),
-  coverImage: imageUrl,
-  published: z.boolean(),
-  publishedAt: z.coerce.date(),
-})
 
 export async function savePost(_: FormState, fd: FormData): Promise<FormState> {
   await requireCms()
@@ -227,21 +154,6 @@ export async function deletePost(fd: FormData) {
 
 /* ---------- Vehicles ---------- */
 
-const vehicleSchema = z.object({
-  slug,
-  name: str(120).min(1, 'Nazwa jest wymagana'),
-  debutYear: z
-    .string()
-    .transform((v) => (v === '' ? null : Number(v)))
-    .pipe(z.number().int().min(1990).max(2100).nullable()),
-  imageUrl,
-  description: str(20000),
-  goal: str(1000),
-  bestResult: optStr(200),
-  featured: z.boolean(),
-  sortOrder: int,
-})
-
 export async function saveVehicle(_: FormState, fd: FormData): Promise<FormState> {
   await requireCms()
   try {
@@ -257,14 +169,7 @@ export async function saveVehicle(_: FormState, fd: FormData): Promise<FormState
         featured: bool(fd, 'featured'),
         sortOrder: s(fd, 'sortOrder') || '0',
       }),
-      specs: pipeLines(s(fd, 'specs'), 2).map(([label, value]) => ({ label, value })),
-      stats: pipeLines(s(fd, 'stats'), 3).map(([label, value, unit]) => ({ label, value, unit })),
-      achievements: pipeLines(s(fd, 'achievements'), 4).map(([title, location, result, countryCode]) => ({
-        title,
-        location,
-        result,
-        countryCode: countryCode || undefined,
-      })),
+      ...parseVehicleLists(fd),
     }
     const rawId = s(fd, 'id')
     if (rawId) {
@@ -287,20 +192,6 @@ export async function deleteVehicle(fd: FormData) {
 }
 
 /* ---------- Projects ---------- */
-
-const projectSchema = z.object({
-  category: str(120).min(1, 'Kategoria jest wymagana'),
-  title: str(300).min(1, 'Tytuł jest wymagany'),
-  program: str(300),
-  funding: str(100),
-  ownContribution: optStr(100),
-  totalValue: optStr(100),
-  period: str(50),
-  description: str(10000),
-  heading: str(500),
-  imageUrls: str(4000),
-  sortOrder: int,
-})
 
 export async function saveProject(_: FormState, fd: FormData): Promise<FormState> {
   await requireCms()
@@ -340,28 +231,6 @@ export async function deleteProject(fd: FormData) {
 
 /* ---------- Generyczna treść strony ---------- */
 
-function parseFieldValue(field: Field, raw: FormData): unknown {
-  if (field.type === 'checkbox') return bool(raw, field.name)
-  const value = s(raw, field.name)
-  if (field.type === 'lines') {
-    return value
-      .split('\n')
-      .map((line) => line.trim())
-      .filter(Boolean)
-      .slice(0, 200)
-      .map((line) => {
-        const cells = line.split('|').map((part) => part.trim().slice(0, 8000))
-        while (cells.length < field.columns.length) cells.push('')
-        return cells.slice(0, field.columns.length)
-      })
-  }
-  if (field.type === 'textarea') return value.slice(0, 100000)
-  if (field.type === 'url' && value && !isHttpsUrl(value) && !isSafePath(value)) {
-    throw new Error('Link musi zaczynać się od https:// lub /')
-  }
-  return value.slice(0, 4000)
-}
-
 export async function saveContent(_: FormState, fd: FormData): Promise<FormState> {
   await requireCms()
   try {
@@ -369,7 +238,7 @@ export async function saveContent(_: FormState, fd: FormData): Promise<FormState
     const entryKey = s(fd, 'entryKey')
     const area = contentAreaByKey.get(areaKey)
     if (!area) return { error: 'Nieznany obszar treści.' }
-    if (!entryKey || entryKey.length > 120 || !/^[a-zA-Z0-9:_/-]+$/.test(entryKey)) {
+    if (!isValidEntryKey(entryKey)) {
       return { error: 'Nieprawidłowy klucz wpisu.' }
     }
     if (areaKey === 'pages' && !isValidPageSlug(entryKey)) {
@@ -392,7 +261,7 @@ export async function saveContent(_: FormState, fd: FormData): Promise<FormState
       await db.insert(siteContent).values({ area: areaKey, entryKey, data })
     }
   } catch (e) {
-    if (e instanceof Error && e.message.startsWith('Link musi')) return { error: e.message }
+    if (e instanceof ContentFieldError) return { error: e.message }
     return fail(e)
   }
   refresh()
@@ -406,7 +275,7 @@ export async function addContentEntry(fd: FormData) {
   const area = contentAreaByKey.get(areaKey)
   if (!area) return
   const backToArea = `${ADMIN_PATH}/tresc/${areaKey}`
-  if (!entryKey || entryKey.length > 120 || !/^[a-zA-Z0-9:_/-]+$/.test(entryKey)) {
+  if (!isValidEntryKey(entryKey)) {
     redirect(`${backToArea}?error=key`)
   }
   if (areaKey === 'pages' && !isValidPageSlug(entryKey)) {
@@ -475,19 +344,9 @@ export async function uploadImage(fd: FormData): Promise<{ url?: string; error?:
 
 export async function saveAccount(_: FormState, fd: FormData): Promise<FormState> {
   await requireAdmin()
-  const name = s(fd, 'name').trim()
-  const email = s(fd, 'email').trim().toLowerCase()
-  const password = s(fd, 'password')
-  const role = s(fd, 'role')
-  const rawId = s(fd, 'id')
-
-  if (!name || name.length > 80) return { error: 'Podaj prawidłowe imię i nazwisko.' }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
-    return { error: 'Podaj prawidłowy adres e-mail.' }
-  }
-  if (role !== 'admin' && role !== 'editor') return { error: 'Nieprawidłowa rola.' }
-  if (!rawId && password.length < 12) return { error: 'Hasło musi mieć co najmniej 12 znaków.' }
-  if (rawId && password && password.length < 12) return { error: 'Nowe hasło musi mieć co najmniej 12 znaków.' }
+  const parsed = parseAccountInput(fd)
+  if ('error' in parsed) return { error: parsed.error }
+  const { name, email, password, role, id: rawId } = parsed.data
 
   const client = await pool.connect()
   try {
