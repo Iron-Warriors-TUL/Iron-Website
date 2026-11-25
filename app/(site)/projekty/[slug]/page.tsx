@@ -49,7 +49,7 @@ export default async function ProjectCategoryPage({ params }: Props) {
   return (
     <>
       <section className="relative isolate overflow-hidden pb-[50px] pt-[100px]">
-        <FillImage src="/images/20221006-212150_resize.jpg" alt="" priority sizes="100vw" className="-z-10" />
+        <FillImage src="/images/20221006-212150_resize.jpg" alt="" priority sizes="100vw" zIndex={-10} />
         <div className="absolute inset-0 -z-10 bg-[#fffffff2]" />
         <div className="mx-auto w-full max-w-[1140px] px-[10px] min-[1200px]:px-0">
           <h1 className="sr-only">Projekty</h1>

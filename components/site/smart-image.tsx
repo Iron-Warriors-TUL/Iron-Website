@@ -10,20 +10,33 @@ type BaseProps = {
 }
 
 const shouldSkipOptimization = (src: string) =>
-  /^https?:\/\//.test(src) || src.toLowerCase().split('?')[0].endsWith('.svg')
+  src.startsWith('/api/') ||
+  /^https?:\/\//.test(src) ||
+  /^(data|blob):/i.test(src) ||
+  src.toLowerCase().split('?')[0].endsWith('.svg')
 
 /** Obraz wypełniający pozycjonowany (relative) kontener – do tłów i kafli. */
-export function FillImage({ src, alt, className, sizes = '100vw', priority }: BaseProps) {
+export function FillImage({
+  src,
+  alt,
+  className,
+  sizes = '100vw',
+  priority,
+  zIndex,
+}: BaseProps & { zIndex?: number }) {
+  if (!src) return null
   return (
-    <Image
-      src={src}
-      alt={alt}
-      fill
-      sizes={sizes}
-      priority={priority}
-      unoptimized={shouldSkipOptimization(src)}
-      className={cn('object-cover', className)}
-    />
+    <div className="pointer-events-none absolute inset-0" style={zIndex === undefined ? undefined : { zIndex }}>
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        sizes={sizes}
+        priority={priority}
+        unoptimized={shouldSkipOptimization(src)}
+        className={cn('object-cover', className)}
+      />
+    </div>
   )
 }
 
@@ -37,6 +50,7 @@ export function FixedImage({
   sizes = '100vw',
   priority,
 }: BaseProps & { width?: number; height?: number }) {
+  if (!src) return null
   return (
     <Image
       src={src}

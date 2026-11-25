@@ -10,7 +10,7 @@ import { getContent } from '@/lib/content'
 export function PageHeader({ title, subtitle, image }: { title: string; subtitle?: string; image?: string }) {
   return (
     <section className="relative isolate flex min-h-72 items-center overflow-hidden bg-header">
-      <FillImage src={image ?? '/images/eco-arrow-3-3.jpg'} alt="" priority sizes="100vw" className="-z-10 opacity-40" />
+      <FillImage src={image ?? '/images/eco-arrow-3-3.jpg'} alt="" priority sizes="100vw" zIndex={-10} className="opacity-40" />
       <div className="absolute inset-0 -z-10 bg-white/92" />
       <div className="container-iw py-14">
         <h1 data-reveal className="text-balance text-4xl font-semibold uppercase text-heading md:text-[59px] md:leading-[59px]">{title}</h1>

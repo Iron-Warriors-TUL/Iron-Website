@@ -82,11 +82,11 @@ function TeamRow({ section }: { section: TeamSection }) {
   return (
     <section
       id={section.id}
-      className={`relative isolate scroll-mt-[150px] overflow-hidden ${section.background ? 'py-12' : 'py-8'}`}
+      className={`relative isolate scroll-mt-[150px] overflow-hidden ${section.background ? 'min-h-[300px] py-12' : 'py-8'}`}
     >
       {section.background && (
         <>
-          <FillImage src={section.background} alt="" sizes="100vw" className="-z-10" />
+          <FillImage src={section.background} alt="" sizes="100vw" zIndex={-10} />
           <div className="absolute inset-0 -z-10" style={{ backgroundColor: section.overlay ?? '#ffffffde' }} />
         </>
       )}
@@ -186,7 +186,7 @@ function HeroBlock({ block }: { block: Block }) {
       {videoId ? (
         <YouTubeBackdrop videoId={videoId} start={videoStart} end={videoEnd} poster={image || undefined} />
       ) : image ? (
-        <FillImage src={image} alt="" sizes="100vw" priority className="-z-10" />
+        <FillImage src={image} alt="" sizes="100vw" priority zIndex={-10} />
       ) : null}
       <div
         className={cn(
@@ -314,7 +314,7 @@ function PageHeaderBlock({ block }: { block: Block }) {
   const image = blockStr(block, 'image')
   return (
     <section className="relative isolate flex min-h-72 items-center overflow-hidden bg-header">
-      <FillImage src={image || '/images/eco-arrow-3-3.jpg'} alt="" priority sizes="100vw" className="-z-10 opacity-40" />
+      <FillImage src={image || '/images/eco-arrow-3-3.jpg'} alt="" priority sizes="100vw" zIndex={-10} className="opacity-40" />
       <div className="absolute inset-0 -z-10 bg-white/92" />
       <Container className={cn('py-14', blockStr(block, 'align') === 'center' && 'text-center')}>
         <h1 data-reveal className="text-balance text-4xl font-semibold uppercase text-heading md:text-[59px] md:leading-[59px]">
@@ -342,8 +342,8 @@ function AboutBlock({ block }: { block: Block }) {
   if (!heading && !top && !left && !right && images.length === 0) return null
 
   return (
-    <section id="firstFP" className="relative isolate overflow-hidden scroll-mt-28 py-5">
-      {background && <FillImage src={background} alt="" sizes="100vw" className="-z-10" />}
+    <section id="firstFP" className="relative isolate min-h-[600px] overflow-hidden scroll-mt-28 py-5">
+      {background && <FillImage src={background} alt="" sizes="100vw" zIndex={-10} />}
       <div className="absolute inset-0 -z-10 bg-white/82" />
       <Container>
         {heading && (
@@ -486,7 +486,7 @@ function PartnerOfferBlock({ block }: { block: Block }) {
     <div className="flex flex-col">
       {title && (
         <section className="relative isolate flex min-h-72 items-center overflow-hidden bg-header">
-          <FillImage src={image || '/images/team-2.jpg'} alt="" priority sizes="100vw" className="-z-10 opacity-40" />
+          <FillImage src={image || '/images/team-2.jpg'} alt="" priority sizes="100vw" zIndex={-10} className="opacity-40" />
           <div className="absolute inset-0 -z-10 bg-white/92" />
           <Container className="py-14">
             <h1 data-reveal className="text-balance text-4xl font-semibold uppercase text-heading md:text-[59px] md:leading-[59px]">
@@ -541,8 +541,8 @@ function VehicleFeatureBlock({ block }: { block: Block }) {
   if (!heading && !text && gallery.length === 0 && stats.length === 0) return null
 
   return (
-    <section className="relative isolate overflow-hidden py-5">
-      {background && <FillImage src={background} alt="" sizes="100vw" className="-z-10" />}
+    <section className="relative isolate min-h-[600px] overflow-hidden py-5">
+      {background && <FillImage src={background} alt="" sizes="100vw" zIndex={-10} />}
       <div className="absolute inset-0 -z-10 bg-white/93" />
       <Container>
         <div className="mt-2 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,540px)_minmax(0,652px)] lg:justify-center">
@@ -800,8 +800,8 @@ async function ContactBlock({ block }: { block: Block }) {
   const offerHref = sponsorHref || String(settings?.sponsorPdf ?? '')
 
   return (
-    <section className="relative isolate overflow-hidden">
-      {background && <FillImage src={background} alt="" priority sizes="100vw" className="-z-10" />}
+    <section className="relative isolate min-h-[500px] overflow-hidden">
+      {background && <FillImage src={background} alt="" priority sizes="100vw" zIndex={-10} />}
       <div className="absolute inset-0 -z-10 bg-white/92" />
 
       <div className="mx-auto w-full max-w-[1140px] px-[10px] pb-[60px] min-[1200px]:pb-[80px]">
@@ -910,8 +910,8 @@ async function VehicleListBlock({ block }: { block: Block }) {
   const titleStyle = { WebkitTextStroke: '2px black', textShadow: '0 0 10px rgba(0,0,0,.3)' }
 
   return (
-    <section className="relative isolate overflow-hidden pb-14 pt-[110px]">
-      {background && <FillImage src={background} alt="" priority sizes="100vw" className="-z-10" />}
+    <section className="relative isolate min-h-[400px] overflow-hidden pb-14 pt-[110px]">
+      {background && <FillImage src={background} alt="" priority sizes="100vw" zIndex={-10} />}
       <div className="absolute inset-0 -z-10 bg-[#ffffffeb]" />
       <div className="mx-auto w-full max-w-[1140px] px-[30px] max-[767px]:px-4">
         {heading && (
@@ -1123,8 +1123,8 @@ async function TeamSeasonBlock({ block }: { block: Block }) {
 
   return (
     <div className="flex flex-col">
-      <section className="relative isolate overflow-hidden">
-        {background && <FillImage src={background} alt="" priority sizes="100vw" className="-z-10" />}
+      <section className="relative isolate min-h-[500px] overflow-hidden">
+        {background && <FillImage src={background} alt="" priority sizes="100vw" zIndex={-10} />}
         <div className="absolute inset-0 -z-10" style={{ backgroundColor: overlay }} />
         <div className="mx-auto w-full max-w-[1210px] px-4 pb-[70px] pt-[170px] text-center min-[1200px]:pt-[210px]">
           <h1 data-reveal className="text-[42px] font-semibold uppercase leading-[1.2] text-heading md:text-[59px]">
@@ -1215,8 +1215,8 @@ async function PartnerSeasonBlock({ block }: { block: Block }) {
 
   return (
     <div className="flex flex-col">
-      <section className="relative isolate overflow-hidden">
-        {data.background && <FillImage src={data.background} alt="" priority sizes="100vw" className="-z-10" />}
+      <section className="relative isolate min-h-[400px] overflow-hidden">
+        {data.background && <FillImage src={data.background} alt="" priority sizes="100vw" zIndex={-10} />}
         <div className="absolute inset-0 -z-10" style={{ backgroundColor: data.overlay }} />
 
         <div className="mx-auto w-full max-w-[1140px] px-[30px] pb-[70px] pt-[70px] max-[767px]:px-4">
@@ -1251,7 +1251,7 @@ async function PartnerSeasonBlock({ block }: { block: Block }) {
 
       {data.bottomBackground && (
         <section className="relative isolate overflow-hidden">
-          <FillImage src={data.bottomBackground} alt="" sizes="100vw" className="-z-10 [object-position:center_bottom]" />
+          <FillImage src={data.bottomBackground} alt="" sizes="100vw" zIndex={-10} className="[object-position:center_bottom]" />
           <div className="absolute inset-0 -z-10" style={{ backgroundColor: data.overlay }} />
           <div className="h-[120px]" />
         </section>
