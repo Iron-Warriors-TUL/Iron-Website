@@ -21,6 +21,7 @@ services:
       corepack pnpm install --frozen-lockfile &&
       corepack pnpm db:migrate &&
       node scripts/seed-if-empty.mjs &&
+      node scripts/create-account.mjs --from-env &&
       corepack pnpm build
     startCommand: corepack pnpm start
     healthCheckPath: /

@@ -12,7 +12,9 @@
     "test": "node --import tsx --test tests/*.test.ts",
     "db:migrate": "node scripts/migrate.mjs",
     "db:seed": "node scripts/seed.mjs",
-    "db:up": "docker start iw-postgres"
+    "db:up": "docker start iw-postgres",
+    "user:create": "node scripts/create-account.mjs",
+    "user:ensure-admin": "node scripts/create-account.mjs --from-env"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

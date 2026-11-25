@@ -17,8 +17,25 @@ Poniżej minimum, które warto ustawić raz i potem tylko pilnować.
    ```
 
    Aplikacja z adresem `https://` **nie wystartuje** z domyślnym lub krótszym niż 32 znaki sekretem.
-3. `docker compose up -d --build`. Migracje bazy i seed uruchamiają się same przy starcie kontenera.
-4. Po pierwszym logowaniu: włącz 2FA na koncie administratora, usuń `ADMIN_PASSWORD` z `.env`.
+   Docker czyta wyłącznie `.env` obok `docker-compose.yml`; `.env.local` służy tylko do pracy lokalnej.
+3. `docker compose up -d --build`. Migracje i seed (tylko pustej bazy) uruchamiają się same,
+   a potem idempotentny bootstrap admina z `ADMIN_*`.
+4. Sprawdź, czy admin powstał: `docker compose logs app | grep accounts`. Po pierwszym logowaniu
+   włącz 2FA i usuń `ADMIN_PASSWORD` (a najlepiej całe `ADMIN_*`) z `.env` — konto zostaje w bazie,
+   a kolejne starty pominą bootstrap.
+
+Kolejne konta dodawaj z wnętrza kontenera (rejestracja w przeglądarce jest wyłączona):
+
+```bash
+docker compose exec -T app node scripts/create-account.mjs \
+  --email jan@example.com --name "Jan Kowalski" --role editor --password-stdin
+```
+
+Reset hasła istniejącego konta: dodaj `--update-password`. Podgląd wszystkich opcji:
+`docker compose exec app node scripts/create-account.mjs --help`.
+
+> Nie używaj `docker compose down -v` — usuwa wolumeny z bazą i zdjęciami. Zwykłe
+> `docker compose down` oraz przebudowa obrazu zachowują treść dodaną w panelu.
 
 ## 2. HTTPS i reverse proxy
 

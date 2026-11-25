@@ -153,7 +153,20 @@ ADMIN_NAME=Administrator
 ```
 
 Bez `ADMIN_EMAIL` i `ADMIN_PASSWORD` seed nie utworzy żadnego konta.
-Rejestracja nowych kont w przeglądarce jest zablokowana.
+Rejestracja nowych kont w przeglądarce jest zablokowana, więc kolejne konta dodaj przez CLI:
+
+```bash
+# lokalnie (czyta .env.local / .env)
+node scripts/create-account.mjs --email jan@example.com --name "Jan Kowalski" --role editor --password-stdin
+
+# w kontenerze (czyta .env obok docker-compose.yml)
+docker compose exec -T app node scripts/create-account.mjs \
+  --email jan@example.com --name "Jan Kowalski" --role editor --password-stdin
+```
+
+`--from-env` tworzy/promuje administratora z `ADMIN_*` i jest idempotentne. Po pierwszym
+uruchomieniu można usunąć `ADMIN_PASSWORD` z `.env`; przy kolejnych startach bootstrap
+zostanie pominięty, a konto pozostanie w bazie.
 
 Wersja produkcyjna (wymaga działającej bazy przy budowie):
 
