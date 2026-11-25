@@ -1,10 +1,11 @@
 'use client'
 
-import { asLines, contentAreaByKey, linesToString, type ContentArea, type Data } from '@/lib/content-registry'
+import { asLines, contentAreaByKey, type ContentArea, type Data } from '@/lib/content-registry'
 import { AdminForm } from './admin-form'
 import { Checkbox, Field, inputClass } from './fields'
 import { ImageField } from './image-field'
 import { PeopleEditor } from './people-editor'
+import { LinesEditor, type LineReferences } from './lines-editor'
 import { deleteContentEntry, saveContent } from '@/app/iw-panel-7k2q/actions'
 
 export function ContentForm({
@@ -12,11 +13,13 @@ export function ContentForm({
   entryKey,
   data,
   isDefault,
+  references,
 }: {
   areaKey: string
   entryKey: string
   data: Data
   isDefault: boolean
+  references?: LineReferences
 }) {
   const area = contentAreaByKey.get(areaKey) as ContentArea
   const value = (name: string) => (typeof data[name] === 'string' ? (data[name] as string) : '')
@@ -43,13 +46,11 @@ export function ContentForm({
                 className={inputClass}
               />
             ) : field.type === 'lines' ? (
-              <textarea
-                id={`f-${field.name}`}
+              <LinesEditor
                 name={field.name}
-                defaultValue={linesToString(data[field.name], field.columns.length)}
-                rows={Math.max(4, Math.min(16, linesToString(data[field.name], field.columns.length).split('\n').length + 1))}
-                className={`${inputClass} font-mono text-xs leading-relaxed`}
-                spellCheck={false}
+                columns={field.columns}
+                initial={asLines(data[field.name], field.columns.length)}
+                references={references}
               />
             ) : field.type === 'checkbox' ? (
               <Checkbox name={field.name} label="Włączone" defaultChecked={data[field.name] === true} />
