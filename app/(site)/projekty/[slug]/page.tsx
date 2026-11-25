@@ -148,7 +148,7 @@ function Description({ text }: { text: string }) {
       })
       flush()
     })
-  return <div className="flex flex-col gap-5 text-justify text-[15px] leading-[25.2px] text-black">{nodes}</div>
+  return <div className="flex flex-col gap-5 text-left sm:text-justify text-[15px] leading-[25.2px] text-black">{nodes}</div>
 }
 
 function EntryImages({ urls, alt }: { urls: string; alt: string }) {

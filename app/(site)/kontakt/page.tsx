@@ -38,7 +38,7 @@ export default async function ContactPage() {
             </p>
             <a
               href={`mailto:${value('email')}`}
-              className="mt-3 text-center text-[18px] font-semibold leading-[24px] text-black hover:underline"
+              className="mt-3 max-w-full break-words text-center text-[16px] font-semibold leading-[24px] text-black hover:underline sm:text-[18px]"
             >
               {value('email')}
             </a>

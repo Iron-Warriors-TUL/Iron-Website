@@ -84,7 +84,7 @@ export default async function VehiclePage({ params }: Props) {
 
       <section className="bg-[#ffffffeb] pb-16">
         <div className="mx-auto flex w-full max-w-[1160px] flex-col gap-12 px-[10px]">
-          <Paragraphs text={v.description} className="max-w-[1140px] text-justify text-[15px] leading-[25.2px]" />
+          <Paragraphs text={v.description} className="max-w-[1140px] text-left sm:text-justify text-[15px] leading-[25.2px]" />
 
           <div data-reveal className="flex flex-col gap-4">
             <h2 className="text-[19px] font-semibold text-heading">Parametry techniczne</h2>

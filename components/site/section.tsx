@@ -21,7 +21,7 @@ export function PageHeader({ title, subtitle, image }: { title: string; subtitle
 
 export function Paragraphs({ text, className }: { text: string; className?: string }) {
   return (
-    <div className={cn('flex flex-col gap-5 text-justify text-[15px] leading-[25.2px] text-black', className)}>
+    <div className={cn('flex flex-col gap-5 text-left sm:text-justify text-[15px] leading-[25.2px] text-black', className)}>
       {text
         .split(/\n{2,}/)
         .filter(Boolean)
