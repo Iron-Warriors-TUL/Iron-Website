@@ -14,7 +14,7 @@ export default async function Dashboard() {
     db.select({ c: count() }).from(siteContent),
   ])
   const cards = [
-    { label: 'Edytowalne obszary', value: contentAreas.length, href: `${ADMIN_PATH}/tresc` },
+    { label: 'Edytowalne obszary', value: contentAreas.filter((area) => !area.hidden).length, href: `${ADMIN_PATH}/tresc` },
     { label: 'Zapisane zmiany treści', value: sc.c, href: `${ADMIN_PATH}/tresc` },
     { label: 'Elementy nawigacji', value: n.c, href: `${ADMIN_PATH}/nawigacja` },
     { label: 'Wpisy na blogu', value: p.c, href: `${ADMIN_PATH}/blog` },

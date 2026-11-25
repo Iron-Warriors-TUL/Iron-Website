@@ -1,28 +1,25 @@
 import type { Metadata } from 'next'
-import { getPublishedPosts } from '@/lib/data'
-import { PageHeader } from '@/components/site/section'
-import { PostCard } from '@/components/site/post-card'
+import { BlockRenderer } from '@/components/site/block-renderer'
+import { getContent } from '@/lib/content'
+import { blockStr, parseBlocks } from '@/lib/blocks'
 
 export const metadata: Metadata = { title: 'Blog' }
 
 export default async function BlogPage() {
-  const posts = await getPublishedPosts()
+  const page = await getContent('blog-list')
+  const blocks = parseBlocks(page.blocks)
+  const hasH1 = blocks.some(
+    (block) =>
+      block.type === 'hero' ||
+      block.type === 'pageHeader' ||
+      block.type === 'postList' ||
+      (block.type === 'heading' && blockStr(block, 'level') === 'h1'),
+  )
+
   return (
-    <>
-      <PageHeader title="Blog" subtitle="Aktualności z życia zespołu Iron Warriors." image="/images/team-1.jpg" />
-      <section className="py-16">
-        <div className="mx-auto max-w-6xl px-4 md:px-6">
-          {posts.length === 0 ? (
-            <p className="text-muted-foreground">Brak wpisów.</p>
-          ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {posts.map((p) => (
-                <PostCard key={p.id} post={p} />
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
-    </>
+    <div className="flex flex-col">
+      {!hasH1 && <h1 className="sr-only">Blog</h1>}
+      <BlockRenderer blocks={blocks} />
+    </div>
   )
 }

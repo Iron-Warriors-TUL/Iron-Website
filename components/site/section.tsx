@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { parseInlineContent } from '@/lib/inline-content'
 import { AnimatedNumber } from './animated-number'
 import { Carousel, type CarouselProps } from './carousel'
 import { FillImage, FixedImage } from './smart-image'
@@ -21,15 +22,20 @@ export function PageHeader({ title, subtitle, image }: { title: string; subtitle
 
 export function Paragraphs({ text, className }: { text: string; className?: string }) {
   return (
-    <div className={cn('flex flex-col gap-5 text-justify text-[15px] leading-[25.2px] text-black', className)}>
-      {text
-        .split(/\n{2,}/)
-        .filter(Boolean)
-        .map((p, i) => (
+    <div className={cn('flex flex-col gap-5 text-left sm:text-justify text-[15px] leading-[25.2px] text-black', className)}>
+      {parseInlineContent(text).map((block, i) =>
+        block.type === 'image' ? (
+          <figure key={i} data-reveal className="overflow-hidden rounded-md bg-secondary">
+            <div className="relative aspect-video w-full">
+              <FillImage src={block.src} alt={block.alt} sizes="100vw" />
+            </div>
+          </figure>
+        ) : (
           <p key={i} data-reveal className="text-pretty">
-            {p}
+            {block.text}
           </p>
-        ))}
+        ),
+      )}
     </div>
   )
 }
@@ -91,11 +97,11 @@ export function StatGrid({ stats, className }: { stats: StatItem[]; className?: 
   return (
     <dl className={cn('grid grid-cols-1 gap-x-5 gap-y-8 text-center sm:grid-cols-2 lg:grid-cols-4', className)}>
       {stats.map((stat) => (
-        <div key={stat.label} data-reveal className="flex flex-col items-center">
-          <dt className="min-h-[48px] text-[19px] leading-[47.5px] text-[#868990]">{stat.label}</dt>
-          <dd className="flex items-baseline justify-center text-[52px] font-semibold leading-[69px] text-[#868990] md:text-[69px]">
+        <div key={stat.label} data-reveal className="flex min-w-0 flex-col items-center">
+          <dt className="flex min-h-[48px] items-end text-[17px] leading-[1.35] text-[#868990] sm:text-[19px]">{stat.label}</dt>
+          <dd className="flex flex-wrap items-baseline justify-center text-[40px] font-semibold leading-[1.2] text-[#868990] sm:text-[52px] md:text-[60px] xl:text-[69px]">
             <AnimatedNumber value={stat.value} />
-            {stat.unit && <span className="ml-1 text-[28px] font-semibold">{stat.unit}</span>}
+            {stat.unit && <span className="ml-1 text-[22px] font-semibold sm:text-[28px]">{stat.unit}</span>}
           </dd>
         </div>
       ))}

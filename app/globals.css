@@ -166,3 +166,57 @@ html {
     transition: none;
   }
 }
+
+/* ---------- Ekran ładowania (components/site/splash-screen.tsx) ---------- */
+
+.iw-splash {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 400ms ease-in-out, visibility 0s;
+}
+
+.iw-splash[data-phase='hiding'],
+.iw-splash[data-phase='hidden'] {
+  opacity: 0;
+}
+
+.iw-splash[data-phase='hidden'] {
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 400ms ease-in-out, visibility 0s linear 400ms;
+}
+
+/* Wirujący łuk jak przy starcie Windows 11: obraca się i na zmianę wydłuża i skraca. */
+.iw-spinner {
+  width: 34px;
+  height: 34px;
+  animation: iw-spin 1.6s linear infinite;
+}
+
+.iw-spinner circle {
+  stroke: var(--color-primary);
+  stroke-dasharray: 1 150;
+  stroke-dashoffset: 0;
+  animation: iw-arc 1.6s ease-in-out infinite;
+}
+
+@keyframes iw-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes iw-arc {
+  0% {
+    stroke-dasharray: 1 150;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: 90 150;
+    stroke-dashoffset: -35;
+  }
+  100% {
+    stroke-dasharray: 90 150;
+    stroke-dashoffset: -124;
+  }
+}

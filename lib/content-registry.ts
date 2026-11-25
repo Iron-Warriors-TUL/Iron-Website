@@ -33,12 +33,15 @@ export type Field =
   | { name: string; label: string; type: 'checkbox'; hint?: string }
   | { name: string; label: string; type: 'select'; options: string[]; hint?: string }
   | { name: string; label: string; type: 'lines'; columns: string[]; hint?: string }
+  | { name: string; label: string; type: 'blocks'; hint?: string }
 
 export type ContentArea = {
   key: string
   label: string
   description?: string
   single?: boolean
+  /** Wpisy techniczne, używane tylko jako dane wejściowe dla bloków stron. */
+  hidden?: boolean
   keys: string[]
   fields: Field[]
   defaults: (key: string) => Data
@@ -238,45 +241,32 @@ export const contentAreas: ContentArea[] = [
     description: 'Nagłówek, sekcja „O nas\", liczby i lista wyróżnionych bolidów.',
     single: true,
     keys: ['main'],
-    fields: [
-      { name: 'heroVideoId', label: 'ID filmu tła', type: 'text', hint: 'Id z YouTube (bez parametrów).' },
-      { name: 'heroStart', label: 'Początek odtwarzania (s)', type: 'text' },
-      { name: 'heroEnd', label: 'Koniec fragmentu (s)', type: 'text' },
-      { name: 'heroPoster', label: 'Obraz zastępczy filmu', type: 'image' },
-      { name: 'heroTitle', label: 'Nagłówek główny', type: 'text' },
-      { name: 'heroCtaLabel', label: 'Etykieta przycisku „O nas”', type: 'text' },
-      { name: 'heroCtaHref', label: 'Link przycisku', type: 'text' },
-      { name: 'aboutHeading', label: 'Nagłówek sekcji „O nas”', type: 'text' },
-      { name: 'aboutTop', label: 'Wstęp', type: 'textarea', rows: 6 },
-      { name: 'aboutLeft', label: 'Tekst lewy', type: 'textarea', rows: 8 },
-      { name: 'aboutRight', label: 'Tekst prawy', type: 'textarea', rows: 8 },
-      {
-        name: 'aboutGallery', label: 'Galeria „O nas”', type: 'lines', columns: ['Ścieżka obrazu'],
-        hint: 'Jeden obraz na linię. Ścieżka /images/... lub adres https://...',
-      },
-      { name: 'aboutGalleryAlt', label: 'Opis galerii', type: 'text' },
-      { name: 'aboutBackground', label: 'Tło sekcji „O nas”', type: 'image' },
-      { name: 'aboutVideoId', label: 'ID filmu w sekcji „O nas”', type: 'text' },
-      { name: 'statsHeading', label: 'Nagłówek liczb', type: 'text' },
-      { name: 'statsSubheading', label: 'Podtytuł liczb', type: 'text' },
-      {
-        name: 'stats', label: 'Liczby', type: 'lines', columns: ['Etykieta', 'Wartość', 'Jednostka'],
-        hint: 'np. Rekord Polski | 837 | km/l',
-      },
-      { name: 'vehiclesHeading', label: 'Nagłówek sekcji bolidów', type: 'text' },
-      { name: 'vehiclesLinkLabel', label: 'Etykieta linku do bolidów', type: 'text' },
-      { name: 'vehiclesLinkHref', label: 'Link do bolidów', type: 'text' },
-      {
-        name: 'featured', label: 'Wyróżnione bolidy', type: 'lines', columns: ['Slug bolidu'],
-        hint: 'Slugi z panelu „Bolidy”, np. eco-arrow-3.',
-      },
-    ],
-    defaults: () => homeDefaults,
+    fields: [{ name: 'blocks', label: 'Bloki strony', type: 'blocks', hint: 'Układaj sekcje strony głównej od góry do dołu.' }],
+    defaults: () => ({ blocks: [], ...homeDefaults }),
+  },
+  {
+    key: 'blog-list',
+    label: 'Blog – lista',
+    description: 'Nagłówek i lista najnowszych wpisów.',
+    single: true,
+    keys: ['main'],
+    fields: [{ name: 'blocks', label: 'Bloki strony', type: 'blocks' }],
+    defaults: () => ({ blocks: [] }),
+  },
+  {
+    key: 'projects-list',
+    label: 'Projekty – lista',
+    description: 'Nagłówek i kategorie projektów z „Ustawień strony”.',
+    single: true,
+    keys: ['main'],
+    fields: [{ name: 'blocks', label: 'Bloki strony', type: 'blocks' }],
+    defaults: () => ({ blocks: [] }),
   },
   {
     key: 'home-vehicles',
     label: 'Bolidy na stronie głównej',
     description: 'Treści i galerie dwóch wyróżnionych bolidów.',
+    hidden: true,
     keys: Object.keys(homeVehicles),
     fields: [
       { name: 'heading', label: 'Nagłówek', type: 'text' },
@@ -316,17 +306,7 @@ export const contentAreas: ContentArea[] = [
     label: 'Zespoły – roczniki',
     description: 'Nagłówki, opisy i przyciski skoków dla każdego roku.',
     keys: teamYearKeys,
-    fields: [
-      { name: 'label', label: 'Etykieta rocznika', type: 'text' },
-      { name: 'intro', label: 'Opis', type: 'textarea', rows: 6 },
-      { name: 'heroBackground', label: 'Tło nagłówka', type: 'image' },
-      { name: 'seasonTag', label: 'Znacznik sezonu', type: 'select', options: ['h1', 'h2'] },
-      { name: 'overlay', label: 'Kolor nakładki (hex)', type: 'text' },
-      {
-        name: 'jumps', label: 'Przyciski skoków', type: 'lines', columns: ['Etykieta', 'Id sekcji'],
-        hint: 'Id sekcji bez #, np. zespolKierowcy.',
-      },
-    ],
+    fields: [{ name: 'blocks', label: 'Bloki strony', type: 'blocks', hint: 'Dodaj blok „Zespół — rocznik”, aby pokazać składy.' }],
     defaults: teamYearDefaults,
     entryLabel: (key, data) => str(data.label) || key,
   },
@@ -371,12 +351,7 @@ export const contentAreas: ContentArea[] = [
     label: 'Partnerzy – roczniki',
     description: 'Tła i ustawienia wyglądu dla każdego roku.',
     keys: partnerYearKeys,
-    fields: [
-      { name: 'background', label: 'Tło nagłówka', type: 'image' },
-      { name: 'bottomBackground', label: 'Tło dolnego paska', type: 'image' },
-      { name: 'overlay', label: 'Kolor nakładki (hex)', type: 'text' },
-      { name: 'plainImages', label: 'Zwykłe loga (bez kart)', type: 'checkbox' },
-    ],
+    fields: [{ name: 'blocks', label: 'Bloki strony', type: 'blocks', hint: 'Dodaj blok „Partnerzy — rocznik”, aby pokazać logotypy.' }],
     defaults: partnerYearDefaults,
     entryLabel: (key) => `Partnerzy ${key}`,
   },
@@ -406,15 +381,8 @@ export const contentAreas: ContentArea[] = [
     description: 'Treść strony ofertowej dla sponsorów.',
     single: true,
     keys: ['main'],
-    fields: [
-      { name: 'title', label: 'Nagłówek', type: 'text' },
-      { name: 'image', label: 'Tło nagłówka', type: 'image' },
-      { name: 'text', label: 'Opis', type: 'textarea', rows: 10 },
-      { name: 'offerLabel', label: 'Etykieta przycisku oferty', type: 'text' },
-      { name: 'contactLabel', label: 'Etykieta przycisku kontaktu', type: 'text' },
-      { name: 'contactHref', label: 'Link kontaktu', type: 'text' },
-    ],
-    defaults: () => becomePartnerDefaults,
+    fields: [{ name: 'blocks', label: 'Bloki strony', type: 'blocks', hint: 'Układaj sekcje strony od góry do dołu.' }],
+    defaults: () => ({ blocks: [], ...becomePartnerDefaults }),
   },
   {
     key: 'cta',
@@ -441,18 +409,8 @@ export const contentAreas: ContentArea[] = [
     description: 'Nagłówek, dane kontaktowe, zdjęcie i treść przy ofercie sponsorskiej. Link do oferty ustawiasz w „Ustawienia strony”.',
     single: true,
     keys: ['main'],
-    fields: [
-      { name: 'title', label: 'Nagłówek', type: 'text' },
-      { name: 'background', label: 'Tło sekcji', type: 'image' },
-      { name: 'photo', label: 'Zdjęcie osoby kontaktowej', type: 'image' },
-      { name: 'photoAlt', label: 'Opis zdjęcia', type: 'text' },
-      { name: 'name', label: 'Imię i nazwisko', type: 'text' },
-      { name: 'role', label: 'Stanowisko', type: 'text' },
-      { name: 'email', label: 'Adres e-mail', type: 'text' },
-      { name: 'sponsorText', label: 'Tekst przy ofercie sponsorskiej', type: 'textarea', rows: 4 },
-      { name: 'sponsorButtonLabel', label: 'Etykieta przycisku oferty', type: 'text' },
-    ],
-    defaults: () => contactDefaults,
+    fields: [{ name: 'blocks', label: 'Bloki strony', type: 'blocks', hint: 'Układaj sekcje strony od góry do dołu.' }],
+    defaults: () => ({ blocks: [], ...contactDefaults }),
   },
   {
     key: 'recruitment',
@@ -460,28 +418,14 @@ export const contentAreas: ContentArea[] = [
     description: 'Opis rekrutacji, link do formularza i zdjęcia.',
     single: true,
     keys: ['main'],
-    fields: [
-      { name: 'formUrl', label: 'Link do formularza', type: 'url' },
-      { name: 'formLabel', label: 'Etykieta przycisku', type: 'text' },
-      { name: 'heading', label: 'Nagłówek', type: 'text' },
-      { name: 'intro', label: 'Opis', type: 'textarea', rows: 10 },
-      { name: 'notice', label: 'Informacja dodatkowa', type: 'textarea', rows: 3 },
-      { name: 'gainsHeading', label: 'Nagłówek „Co zyskujesz?”', type: 'text' },
-      { name: 'gains', label: 'Co zyskujesz', type: 'lines', columns: ['Punkt'] },
-      { name: 'gainsImage', label: 'Zdjęcie przy liście korzyści', type: 'image' },
-      { name: 'gainsImageAlt', label: 'Opis zdjęcia korzyści', type: 'text' },
-      { name: 'expectationsHeading', label: 'Nagłówek „Czego oczekujemy?”', type: 'text' },
-      { name: 'expectations', label: 'Czego oczekujemy', type: 'lines', columns: ['Punkt'] },
-      { name: 'expectationsImage', label: 'Zdjęcie przy oczekiwaniach', type: 'image' },
-      { name: 'expectationsImageAlt', label: 'Opis zdjęcia oczekiwań', type: 'text' },
-      { name: 'heroImage', label: 'Tło nagłówka', type: 'image' },
-    ],
-    defaults: () => recruitmentDefaults,
+    fields: [{ name: 'blocks', label: 'Bloki strony', type: 'blocks', hint: 'Układaj sekcje strony od góry do dołu.' }],
+    defaults: () => ({ blocks: [], ...recruitmentDefaults }),
   },
   {
     key: 'recruitment-departments',
     label: 'Dołącz do nas – działy',
     description: 'Opisy działów i sekcji w rekrutacji.',
+    hidden: true,
     keys: recruitment.departments.map((_, i) => String(i)),
     fields: [
       { name: 'title', label: 'Nazwa działu', type: 'text' },
@@ -503,19 +447,8 @@ export const contentAreas: ContentArea[] = [
     description: 'Nagłówek, opisy i galerie na stronie z bolidami.',
     single: true,
     keys: ['main'],
-    fields: [
-      { name: 'heading', label: 'Nagłówek', type: 'text' },
-      { name: 'background', label: 'Tło nagłówka', type: 'image' },
-      {
-        name: 'summaries', label: 'Opisy bolidów', type: 'lines', columns: ['Slug bolidu', 'Opis'],
-        hint: 'Slug musi zgadzać się ze slugiem w panelu „Bolidy”.',
-      },
-      {
-        name: 'galleries', label: 'Galerie bolidów', type: 'lines', columns: ['Slug bolidu', 'Ścieżka obrazu'],
-      },
-      { name: 'moreLabel', label: 'Etykieta przycisku „Zobacz więcej”', type: 'text' },
-    ],
-    defaults: () => vehiclesPageDefaults,
+    fields: [{ name: 'blocks', label: 'Bloki strony', type: 'blocks', hint: 'Układaj sekcje strony od góry do dołu.' }],
+    defaults: () => ({ blocks: [], ...vehiclesPageDefaults }),
   },
   {
     key: 'vehicle-layout',
@@ -564,15 +497,13 @@ export const contentAreas: ContentArea[] = [
     keys: [],
     fields: [
       { name: 'title', label: 'Tytuł strony', type: 'text' },
-      { name: 'lead', label: 'Krótki wstęp (lead)', type: 'textarea', rows: 3 },
-      { name: 'content', label: 'Treść strony', type: 'textarea', rows: 16, hint: 'Akapity oddzielaj pustą linią.' },
-      { name: 'image', label: 'Obraz nagłówka', type: 'image' },
-      { name: 'imageAlt', label: 'Opis obrazu (alt)', type: 'text' },
+      { name: 'blocks', label: 'Bloki strony', type: 'blocks', hint: 'Układaj sekcje strony od góry do dołu.' },
       { name: 'seoDescription', label: 'Opis SEO', type: 'textarea', rows: 3, hint: 'Wyświetlany w wynikach wyszukiwania.' },
       { name: 'published', label: 'Opublikowana', type: 'checkbox', hint: 'Odznacz, aby ukryć stronę bez usuwania treści.' },
     ],
     defaults: () => ({
       title: '',
+      blocks: [],
       lead: '',
       content: '',
       image: '',

@@ -23,7 +23,7 @@ export default function ContentAreasPage() {
         </Link>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {contentAreas.map((area) => (
+        {contentAreas.filter((area) => !area.hidden).map((area) => (
           <Link
             key={area.key}
             href={`${ADMIN_PATH}/tresc/${area.key}`}

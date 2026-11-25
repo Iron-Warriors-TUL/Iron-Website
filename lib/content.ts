@@ -4,7 +4,69 @@ import { and, asc, eq } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { siteContent } from '@/lib/db/schema'
 import { defaultContent, defaultKeys, type Data } from '@/lib/content-registry'
+import { parseBlocks } from '@/lib/blocks'
+import {
+  becomePartnerBlocks,
+  blogListBlocks,
+  contactBlocks,
+  customPageBlocks,
+  homeBlocks,
+  partnerYearBlocks,
+  projectsListBlocks,
+  recruitmentBlocks,
+  teamYearBlocks,
+  vehicleListBlocks,
+} from '@/lib/page-blocks'
 import { isValidPageSlug } from '@/lib/page-slug'
+
+const rows = (value: unknown): unknown[][] => (Array.isArray(value) ? (value as unknown[][]) : [])
+
+/**
+ * Strony zbudowane wcześniej z klasycznych pól dostają automatycznie listę
+ * bloków. Gdy w bazie są już zapisane bloki, nic nie zmieniamy.
+ */
+export async function applyPageBlocks(area: string, entryKey: string, data: Data): Promise<Data> {
+  if (parseBlocks(data.blocks).length > 0) return data
+
+  switch (area) {
+    case 'home': {
+      const featured = rows(data.featured)
+        .map((row) => String(row[0] ?? ''))
+        .filter(Boolean)
+      const contents = await Promise.all(featured.map((slug) => getContent('home-vehicles', slug)))
+      return {
+        ...data,
+        blocks: homeBlocks(
+          data,
+          featured.map((slug, index) => ({ slug, data: contents[index] ?? {} })),
+        ),
+      }
+    }
+    case 'contact':
+      return { ...data, blocks: contactBlocks(data) }
+    case 'recruitment': {
+      const keys = await getEntryKeys('recruitment-departments')
+      const departments = await Promise.all(keys.map((key) => getContent('recruitment-departments', key)))
+      return { ...data, blocks: recruitmentBlocks(data, departments) }
+    }
+    case 'become-partner':
+      return { ...data, blocks: becomePartnerBlocks(data) }
+    case 'vehicle-list':
+      return { ...data, blocks: vehicleListBlocks(data) }
+    case 'blog-list':
+      return { ...data, blocks: blogListBlocks() }
+    case 'projects-list':
+      return { ...data, blocks: projectsListBlocks() }
+    case 'team-years':
+      return { ...data, blocks: teamYearBlocks(data, entryKey) }
+    case 'partner-years':
+      return { ...data, blocks: partnerYearBlocks(data, entryKey) }
+    case 'pages':
+      return { ...data, blocks: customPageBlocks(data) }
+    default:
+      return data
+  }
+}
 
 /** Zwraca dane wpisu. Brakujące pola uzupełniają wartości domyślne z rejestru. */
 export const getContent = cache(async (area: string, entryKey = 'main'): Promise<Data> => {
@@ -13,7 +75,7 @@ export const getContent = cache(async (area: string, entryKey = 'main'): Promise
     .from(siteContent)
     .where(and(eq(siteContent.area, area), eq(siteContent.entryKey, entryKey)))
     .limit(1)
-  return { ...defaultContent(area, entryKey), ...(row?.data ?? {}) }
+  return applyPageBlocks(area, entryKey, { ...defaultContent(area, entryKey), ...(row?.data ?? {}) })
 })
 
 /** Klucze wszystkich wpisów w obszarze — domyślne oraz dodane w CMS. */
@@ -63,11 +125,13 @@ export async function listEntries(area: string): Promise<ContentRow[]> {
     getEntryKeys(area),
   ])
   const stored = new Map(rows.map((r) => [r.entryKey, r.data]))
-  return keys.map((key) => ({
-    key,
-    data: { ...defaultContent(area, key), ...(stored.get(key) ?? {}) },
-    isDefault: !stored.has(key),
-  }))
+  return Promise.all(
+    keys.map(async (key) => ({
+      key,
+      data: await applyPageBlocks(area, key, { ...defaultContent(area, key), ...(stored.get(key) ?? {}) }),
+      isDefault: !stored.has(key),
+    })),
+  )
 }
 
 export async function getStoredContent(area: string, entryKey: string): Promise<Data> {
@@ -83,7 +147,7 @@ export async function getStoredContent(area: string, entryKey: string): Promise<
 export async function getCustomPage(slug: string): Promise<Data | null> {
   const stored = await getStoredContent('pages', slug)
   if (Object.keys(stored).length === 0) return null
-  const page = { ...defaultContent('pages', slug), ...stored }
+  const page = await applyPageBlocks('pages', slug, { ...defaultContent('pages', slug), ...stored })
   return page.published === false ? null : page
 }
 

@@ -3,9 +3,11 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { ArrowLeft } from 'lucide-react'
 import { getPublishedPost } from '@/lib/data'
-import { Paragraphs } from '@/components/site/section'
+import { BlockRenderer } from '@/components/site/block-renderer'
 import { formatDate } from '@/components/site/post-card'
 import { FillImage } from '@/components/site/smart-image'
+import { parseBlocks } from '@/lib/blocks'
+import { postBlocks } from '@/lib/entity-blocks'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -17,6 +19,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function PostPage({ params }: Props) {
   const post = await getPublishedPost((await params).slug)
   if (!post) notFound()
+
+  const stored = parseBlocks(post.blocks)
+  const blocks = stored.length > 0 ? stored : postBlocks(post)
 
   return (
     <article className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-16 md:px-6">
@@ -35,7 +40,7 @@ export default async function PostPage({ params }: Props) {
           <FillImage src={post.coverImage} alt="" sizes="(min-width: 768px) 768px, 100vw" />
         </div>
       )}
-      <Paragraphs text={post.content} className="text-lg text-foreground/85" />
+      <BlockRenderer blocks={blocks} />
     </article>
   )
 }

@@ -8,7 +8,7 @@ type AnimatedNumberProps = {
   className?: string
 }
 
-/** Licznik 0 -> wartość, uruchamiany gdy wejdzie w pole widzenia. */
+/** Licznik 0 -> wartość, uruchamiany gdy wejdzie w pole widzenia. Dopisek po liczbie (np. jednostka) zostaje bez zmian. */
 export function AnimatedNumber({ value, duration = 2000, className }: AnimatedNumberProps) {
   const ref = useRef<HTMLSpanElement>(null)
   const animated = useRef(false)
@@ -18,11 +18,15 @@ export function AnimatedNumber({ value, duration = 2000, className }: AnimatedNu
     const element = ref.current
     if (!element || animated.current) return
 
-    const numericValue = Number.parseFloat(value.replace(',', '.'))
+    // Obsługuje też wartości z dopiskiem, np. „2267 km/l”: animujemy liczbę, dopisek zostaje.
+    const match = value.trim().match(/^(\d+(?:[.,]\d+)?)([^]*)$/)
+    if (!match) return
+    const [, numberPart, suffix] = match
+    const numericValue = Number.parseFloat(numberPart.replace(',', '.'))
     if (!Number.isFinite(numericValue)) return
 
-    const decimals = (value.split(/[.,]/)[1] ?? '').length
-    const format = (number: number) => number.toFixed(decimals)
+    const decimals = (numberPart.split(/[.,]/)[1] ?? '').length
+    const format = (number: number) => number.toFixed(decimals) + suffix
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
     const start = () => {

@@ -57,8 +57,8 @@ export async function Footer() {
 
   return (
     <footer className="bg-footer font-heading text-white">
-      <div className="mx-auto w-full max-w-[1140px] px-[10px] pb-[15px]">
-        <div className="grid grid-cols-1 items-center gap-8 md:grid-cols-3">
+      <div className="mx-auto w-full max-w-[1140px] px-4 pb-[15px] pt-10 md:pt-12">
+        <div className="grid grid-cols-1 items-center gap-10 md:grid-cols-3 md:gap-8">
           <div className="flex justify-center">
             <Link href="/" aria-label="Iron Warriors – strona główna">
               <FixedImage
@@ -104,7 +104,7 @@ export async function Footer() {
           </div>
         </div>
 
-        <div className="mt-5 border-t border-[#383838] py-3 text-center text-[13px] font-light text-[#c8c5c5]">
+        <div className="mt-8 border-t border-[#383838] py-4 text-center text-[13px] font-light text-[#c8c5c5]">
           {String(content.copyright ?? '')}
         </div>
       </div>

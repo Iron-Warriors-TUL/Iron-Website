@@ -16,9 +16,9 @@ export function ListHeader({ title, newHref }: { title: string; newHref: string 
 export function ListRow({ href, title, meta }: { href: string; title: string; meta?: string }) {
   return (
     <li>
-      <Link href={href} className="flex items-center justify-between gap-4 rounded-md border border-border bg-card px-5 py-4 transition-colors hover:border-primary">
-        <span className="font-medium">{title}</span>
-        {meta && <span className="shrink-0 text-sm text-muted-foreground">{meta}</span>}
+      <Link href={href} className="flex flex-col gap-1 rounded-md border border-border bg-card px-4 py-3 transition-colors hover:border-primary sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-5 sm:py-4">
+        <span className="min-w-0 break-words font-medium">{title}</span>
+        {meta && <span className="min-w-0 text-sm text-muted-foreground sm:max-w-[45%] sm:shrink-0 sm:text-right">{meta}</span>}
       </Link>
     </li>
   )

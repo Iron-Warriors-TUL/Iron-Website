@@ -21,7 +21,7 @@ export function MobileNav({ nav }: { nav: NavNode[] }) {
   }
 
   return (
-    <div className="min-[768px]:hidden">
+    <div className="min-[1100px]:hidden">
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}

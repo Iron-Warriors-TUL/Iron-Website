@@ -76,6 +76,7 @@ CREATE TABLE IF NOT EXISTS "posts" (
   "excerpt" TEXT NOT NULL DEFAULT '',
   "content" TEXT NOT NULL DEFAULT '',
   "cover_image" TEXT,
+  "blocks" JSONB NOT NULL DEFAULT '[]'::jsonb,
   "published" BOOLEAN NOT NULL DEFAULT TRUE,
   "published_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -93,6 +94,7 @@ CREATE TABLE IF NOT EXISTS "vehicles" (
   "specs" JSONB NOT NULL DEFAULT '[]'::jsonb,
   "stats" JSONB NOT NULL DEFAULT '[]'::jsonb,
   "achievements" JSONB NOT NULL DEFAULT '[]'::jsonb,
+  "blocks" JSONB NOT NULL DEFAULT '[]'::jsonb,
   "best_result" TEXT,
   "featured" BOOLEAN NOT NULL DEFAULT FALSE,
   "sort_order" INTEGER NOT NULL DEFAULT 0,
@@ -112,6 +114,7 @@ CREATE TABLE IF NOT EXISTS "projects" (
   "description" TEXT NOT NULL DEFAULT '',
   "heading" TEXT NOT NULL DEFAULT '',
   "image_urls" TEXT NOT NULL DEFAULT '',
+  "blocks" JSONB NOT NULL DEFAULT '[]'::jsonb,
   "sort_order" INTEGER NOT NULL DEFAULT 0,
   "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   "updated_at" TIMESTAMPTZ NOT NULL DEFAULT NOW()
