@@ -233,7 +233,7 @@ export default async function NavAdminPage({
                   <code className="mt-0.5 block truncate text-xs text-muted-foreground">{item.href}</code>
                 </div>
 
-                <div className="flex shrink-0 flex-wrap items-center gap-1">
+                <div className="flex w-full flex-wrap items-center gap-1 sm:w-auto sm:shrink-0">
                   <MoveButton id={item.id} direction="up" disabled={position === 0} />
                   <MoveButton id={item.id} direction="down" disabled={position === count - 1} />
                   {depth === 0 && (
