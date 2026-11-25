@@ -36,7 +36,7 @@ export function DesktopNav({ nav }: { nav: NavNode[] }) {
           const childActive = item.children.some((child) => isActive(pathname, child.href))
           const labelClass = cn(
             'flex h-[42.8px] items-center whitespace-nowrap px-[8px] font-heading text-[12.8px] font-semibold uppercase text-white transition-colors duration-300 hover:text-[#f08400] min-[1025px]:h-[46px] min-[1025px]:px-[10px] min-[1025px]:text-sm min-[1280px]:px-[13px] min-[1280px]:text-base',
-            (active || childActive) && '!text-primary',
+            !item.isButton && (active || childActive) && '!text-primary',
           )
 
           return (
