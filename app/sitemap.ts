@@ -6,7 +6,7 @@ import { partners, projectCategories, teams } from '@/lib/site-content'
 export const dynamic = 'force-dynamic'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = (process.env.BETTER_AUTH_URL ?? 'http://localhost:3000').replace(/\/$/, '')
+  const base = (process.env.BETTER_AUTH_URL ?? process.env.RENDER_EXTERNAL_URL ?? 'http://localhost:3000').replace(/\/$/, '')
   const [vehicles, posts, customPages] = await Promise.all([
     getVehicles(),
     getPublishedPosts(),

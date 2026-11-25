@@ -5,7 +5,7 @@ import './globals.css'
 
 const exo = Exo({ subsets: ['latin', 'latin-ext'], variable: '--font-exo' })
 
-const siteUrl = process.env.BETTER_AUTH_URL ?? 'http://localhost:3000'
+const siteUrl = process.env.BETTER_AUTH_URL ?? process.env.RENDER_EXTERNAL_URL ?? 'http://localhost:3000'
 const siteName = 'Iron Warriors'
 const siteDescription =
   'Iron Warriors – studenckie koło naukowe Politechniki Łódzkiej budujące superoszczędne bolidy Eco Arrow. Rekord Polski: 837 km/l benzyny i 2267 km/l w kategorii elektrycznej.'
