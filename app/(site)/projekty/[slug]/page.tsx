@@ -177,6 +177,44 @@ function EntryImages({ urls, alt }: { urls: string; alt: string }) {
   )
 }
 
+const DEFAULT_FUNDING_LOGO = '/images/logo-mnisw.png'
+
+/** Belka z informacją o dofinansowaniu wymaganą przez ministerstwo. Treść z CMS albo standardowa z pól projektu. */
+function FundingBar({ project }: { project: Project }) {
+  const custom = project.fundingBarText.trim()
+  const lines = custom
+    ? custom.split('\n').map((l) => l.trim()).filter(Boolean)
+    : [
+        'Dofinansowano ze środków budżetu państwa',
+        project.program && `w ramach programu ${project.program}`,
+        project.funding && `Kwota dofinansowania: ${project.funding}`,
+        project.totalValue && `Całkowita wartość: ${project.totalValue}`,
+        `Nazwa zadania: ${project.title}`,
+      ].filter((l): l is string => Boolean(l))
+  return (
+    <aside
+      aria-label="Informacja o dofinansowaniu"
+      className="flex flex-col items-center gap-4 border border-[#d9d9d9] bg-[#f5f5f5] px-5 py-4 text-center sm:flex-row sm:gap-6 sm:text-left"
+    >
+      <FixedImage
+        src={project.fundingBarLogo || DEFAULT_FUNDING_LOGO}
+        alt=""
+        width={1024}
+        height={319}
+        sizes="200px"
+        className="h-auto max-h-[64px] w-auto max-w-[200px] shrink-0 object-contain"
+      />
+      <div className="text-[14px] leading-[1.5] text-black">
+        {lines.map((line, i) => (
+          <p key={i} className={i === 0 ? 'font-semibold' : undefined}>
+            {line}
+          </p>
+        ))}
+      </div>
+    </aside>
+  )
+}
+
 async function getCategories() {
   const settings = await getContent('settings')
   const rows = Array.isArray(settings.projectCategories) ? (settings.projectCategories as unknown[][]) : []
@@ -232,6 +270,7 @@ export default async function ProjectCategoryPage({ params }: Props) {
                     <ProjectTable project={project} fields={config.fields} />
                     <Description text={project.description} />
                   </div>
+                  {project.fundingBar && <FundingBar project={project} />}
                 </article>
               </div>
             ))}

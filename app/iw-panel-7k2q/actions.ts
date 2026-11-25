@@ -207,6 +207,9 @@ export async function saveProject(_: FormState, fd: FormData): Promise<FormState
       description: s(fd, 'description'),
       heading: s(fd, 'heading'),
       imageUrls: s(fd, 'imageUrls'),
+      fundingBar: bool(fd, 'fundingBar'),
+      fundingBarText: s(fd, 'fundingBarText'),
+      fundingBarLogo: s(fd, 'fundingBarLogo'),
       sortOrder: s(fd, 'sortOrder') || '0',
     })
     const rawId = s(fd, 'id')

@@ -60,6 +60,23 @@ export default async function ProjectEditor({ params }: { params: Promise<{ id: 
         <Field label="Obrazy (jedna ścieżka na linię)" htmlFor="imageUrls">
           <textarea id="imageUrls" name="imageUrls" defaultValue={p?.imageUrls ?? ''} rows={3} maxLength={4000} className={inputClass} />
         </Field>
+        <fieldset className="flex flex-col gap-4 rounded-md border p-4">
+          <legend className="px-1 text-sm font-semibold">Belka ministerstwa (wymagana informacja o dofinansowaniu)</legend>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="fundingBar" defaultChecked={p?.fundingBar ?? false} className="size-4" />
+            Pokaż belkę pod tym projektem na stronie
+          </label>
+          <Field
+            label="Treść belki"
+            htmlFor="fundingBarText"
+            hint="Zostaw puste, aby użyć tekstu standardowego: „Dofinansowano ze środków budżetu państwa” + program, kwota dofinansowania, całkowita wartość i nazwa zadania z pól powyżej."
+          >
+            <textarea id="fundingBarText" name="fundingBarText" defaultValue={p?.fundingBarText ?? ''} rows={3} maxLength={2000} className={inputClass} />
+          </Field>
+          <Field label="Logo / flaga na belce" htmlFor="fundingBarLogo" hint="Ścieżka do obrazka, np. /images/logo-mnisw.png. Puste = logo ministerstwa.">
+            <input id="fundingBarLogo" name="fundingBarLogo" defaultValue={p?.fundingBarLogo ?? ''} maxLength={2000} className={inputClass} />
+          </Field>
+        </fieldset>
         <Field label="Kolejność" htmlFor="sortOrder">
           <input id="sortOrder" name="sortOrder" type="number" defaultValue={p?.sortOrder ?? 0} className={`${inputClass} max-w-32`} />
         </Field>

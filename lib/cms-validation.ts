@@ -122,6 +122,9 @@ export const projectSchema = z.object({
   description: str(10000),
   heading: str(500),
   imageUrls: str(4000),
+  fundingBar: z.boolean(),
+  fundingBarText: str(2000),
+  fundingBarLogo: imageUrl.transform((v) => v ?? ''),
   sortOrder: int,
 })
 
