@@ -5,6 +5,7 @@ import { listEntries } from '@/lib/content'
 import { ADMIN_PATH } from '@/lib/admin'
 import { BackLink } from '@/components/admin/list'
 import { addContentEntry } from '../../../actions'
+import { NewPageForm } from '@/components/admin/new-page-form'
 import { inputClass } from '@/components/admin/fields'
 
 const PAGE_ERRORS: Record<string, string> = {
@@ -42,32 +43,27 @@ export default async function ContentAreaPage({
         </p>
       )}
 
-      {!definition.single && (
+      {!definition.single && (isPages ? (
+        <NewPageForm action={addContentEntry} />
+      ) : (
         <form action={addContentEntry} className="flex flex-wrap items-end gap-3 rounded-md border border-border bg-card p-4">
           <input type="hidden" name="area" value={area} />
           <label htmlFor="new-entry" className="flex flex-1 flex-col gap-1.5 text-sm font-medium">
-            {isPages ? 'Adres nowej podstrony' : 'Dodaj nowy wpis'}
+            Dodaj nowy wpis
             <input
               id="new-entry"
               name="entryKey"
               required
               maxLength={120}
-              pattern={isPages ? '[a-z0-9]+(?:-[a-z0-9]+)*' : undefined}
-              title={isPages ? 'Tylko małe litery, cyfry i myślniki, np. o-nas' : undefined}
-              placeholder={isPages ? 'o-nas' : area === 'team-sections' ? '2025-2026::64' : 'klucz-wpisu'}
+              placeholder={area === 'team-sections' ? '2025-2026::64' : 'klucz-wpisu'}
               className={inputClass}
             />
-            {isPages && (
-              <span className="text-xs font-normal text-muted-foreground">
-                Strona będzie dostępna pod adresem <code>{'/{slug}'}</code>, np. <code>/o-nas</code>.
-              </span>
-            )}
           </label>
           <button type="submit" className="rounded-sm bg-primary px-5 py-2 text-sm font-bold text-primary-foreground hover:opacity-90">
-            {isPages ? 'Utwórz podstronę' : 'Dodaj i edytuj'}
+            Dodaj i edytuj
           </button>
         </form>
-      )}
+      ))}
 
       <div className="flex flex-col gap-2">
         {entries.map((entry) => (

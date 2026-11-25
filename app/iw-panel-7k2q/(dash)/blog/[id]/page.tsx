@@ -11,6 +11,7 @@ import { BlockEditor } from '@/components/admin/block-editor'
 import { ImageField } from '@/components/admin/image-field'
 import { RichTextField } from '@/components/admin/rich-text-field'
 import { BackLink } from '@/components/admin/list'
+import { SlugField } from '@/components/admin/slug-field'
 
 export default async function PostEditor({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -33,9 +34,7 @@ export default async function PostEditor({ params }: { params: Promise<{ id: str
           <input id="title" name="title" defaultValue={post?.title} required maxLength={200} className={inputClass} />
         </Field>
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Slug (adres URL)" htmlFor="slug" hint="np. shell-eco-marathon-2026">
-            <input id="slug" name="slug" defaultValue={post?.slug} required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxLength={120} className={inputClass} />
-          </Field>
+          <SlugField sourceId="title" defaultValue={post?.slug} hint="np. shell-eco-marathon-2026" />
           <Field label="Data publikacji" htmlFor="publishedAt">
             <input
               id="publishedAt"

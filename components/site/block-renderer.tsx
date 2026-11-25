@@ -1,8 +1,12 @@
 import Link from 'next/link'
-import { blockCards, blockImages, blockStats, blockStr, type Block } from '@/lib/blocks'
+import { blockBool, blockCards, blockImages, blockStats, blockStr, type Block } from '@/lib/blocks'
+import { getContent } from '@/lib/content'
+import { getPublishedPosts, getVehicles } from '@/lib/data'
 import { cn } from '@/lib/utils'
-import { Gallery, OrangeLink, Paragraphs, StatGrid } from './section'
-import { FillImage } from './smart-image'
+import { Gallery, JoinCta, OrangeLink, Paragraphs, StatGrid } from './section'
+import { FixedImage, FillImage } from './smart-image'
+import { MapEmbed } from './map-embed'
+import { PostCard } from './post-card'
 import { YouTubeBackdrop, YouTubeEmbed } from './youtube-video'
 
 const ASPECT: Record<string, string> = {
@@ -14,6 +18,13 @@ const ASPECT: Record<string, string> = {
 
 function Container({ children, className }: { children: React.ReactNode; className?: string }) {
   return <div className={cn('container-iw', className)}>{children}</div>
+}
+
+function linesOf(value: string): string[] {
+  return value
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
 }
 
 function HeroBlock({ block }: { block: Block }) {

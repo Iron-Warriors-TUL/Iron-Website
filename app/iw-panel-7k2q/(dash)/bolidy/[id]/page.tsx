@@ -11,6 +11,7 @@ import { BlockEditor } from '@/components/admin/block-editor'
 import { ImageField } from '@/components/admin/image-field'
 import { RichTextField } from '@/components/admin/rich-text-field'
 import { BackLink } from '@/components/admin/list'
+import { SlugField } from '@/components/admin/slug-field'
 
 const lines = (rows: Record<string, string>[], keys: string[]) => rows.map((r) => keys.map((k) => r[k] ?? '').join(' | ')).join('\n')
 
@@ -35,9 +36,7 @@ export default async function VehicleEditor({ params }: { params: Promise<{ id: 
           <Field label="Nazwa" htmlFor="name">
             <input id="name" name="name" defaultValue={v?.name} required maxLength={120} className={inputClass} />
           </Field>
-          <Field label="Slug (adres URL)" htmlFor="slug">
-            <input id="slug" name="slug" defaultValue={v?.slug} required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxLength={120} className={inputClass} />
-          </Field>
+          <SlugField sourceId="name" defaultValue={v?.slug} />
           <Field label="Rok debiutu" htmlFor="debutYear">
             <input id="debutYear" name="debutYear" type="number" min={1990} max={2100} defaultValue={v?.debutYear ?? ''} className={inputClass} />
           </Field>

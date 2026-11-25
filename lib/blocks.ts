@@ -9,15 +9,23 @@ import { isHttpsUrl, isSafePath } from './safe-url'
 export type BlockType =
   | 'hero'
   | 'section'
+  | 'about'
   | 'heading'
   | 'text'
   | 'image'
   | 'gallery'
   | 'cards'
   | 'list'
+  | 'features'
   | 'stats'
   | 'cta'
+  | 'formCta'
+  | 'contact'
+  | 'vehicleList'
+  | 'postList'
+  | 'projectList'
   | 'youtube'
+  | 'joinCta'
   | 'quote'
   | 'divider'
 
@@ -115,6 +123,31 @@ export const BLOCKS: Record<BlockType, BlockDef> = {
       imagePosition: 'right',
       ctaLabel: '',
       ctaHref: '',
+    }),
+  },
+  about: {
+    type: 'about',
+    label: 'O nas — tekst, galeria i film',
+    description: 'Sekcja z wstępem, dwiema kolumnami, galerią i filmem.',
+    fields: [
+      { name: 'heading', label: 'Nagłówek', type: 'text' },
+      { name: 'top', label: 'Wstęp', type: 'textarea', rows: 5 },
+      { name: 'left', label: 'Tekst lewy', type: 'textarea', rows: 8 },
+      { name: 'right', label: 'Tekst prawy', type: 'textarea', rows: 8 },
+      { name: 'images', label: 'Galeria', type: 'images' },
+      { name: 'galleryAlt', label: 'Opis galerii (alt)', type: 'text' },
+      { name: 'background', label: 'Zdjęcie tła', type: 'image' },
+      { name: 'videoId', label: 'Film (ID YouTube)', type: 'text', hint: 'Np. lbf5afd5ik0.' },
+    ],
+    defaults: () => ({
+      heading: '',
+      top: '',
+      left: '',
+      right: '',
+      images: [],
+      galleryAlt: '',
+      background: '',
+      videoId: '',
     }),
   },
   heading: {
@@ -231,15 +264,52 @@ export const BLOCKS: Record<BlockType, BlockDef> = {
     ],
     defaults: () => ({ heading: '', items: '' }),
   },
+  features: {
+    type: 'features',
+    label: 'Lista z obrazem',
+    description: 'Nagłówek, lista punktów, zdjęcie i opcjonalny przycisk.',
+    fields: [
+      { name: 'heading', label: 'Nagłówek', type: 'text' },
+      { name: 'intro', label: 'Wprowadzenie', type: 'textarea', rows: 4 },
+      { name: 'items', label: 'Punkty', type: 'textarea', rows: 8, hint: 'Każdy punkt w nowej linii.' },
+      { name: 'image', label: 'Zdjęcie', type: 'image' },
+      { name: 'imageAlt', label: 'Opis zdjęcia (alt)', type: 'text' },
+      {
+        name: 'imagePosition',
+        label: 'Położenie zdjęcia',
+        type: 'select',
+        options: [
+          { value: 'right', label: 'Po prawej' },
+          { value: 'left', label: 'Po lewej' },
+          { value: 'below', label: 'Pod listą' },
+        ],
+      },
+      { name: 'ctaLabel', label: 'Przycisk — tekst', type: 'text' },
+      { name: 'ctaHref', label: 'Przycisk — link', type: 'url', placeholder: '/kontakt lub https://…' },
+    ],
+    defaults: () => ({
+      heading: '',
+      intro: '',
+      items: '',
+      image: '',
+      imageAlt: '',
+      imagePosition: 'right',
+      ctaLabel: '',
+      ctaHref: '',
+    }),
+  },
   stats: {
     type: 'stats',
     label: 'Liczby / statystyki',
     description: 'Siatka liczb (np. osiągnięcia, parametry).',
     fields: [
       { name: 'heading', label: 'Nagłówek (opcjonalnie)', type: 'text' },
+      { name: 'subheading', label: 'Podtytuł (opcjonalnie)', type: 'text' },
       { name: 'items', label: 'Pozycje', type: 'stats' },
+      { name: 'ctaLabel', label: 'Przycisk — tekst', type: 'text' },
+      { name: 'ctaHref', label: 'Przycisk — link', type: 'url', placeholder: '/bolidy lub https://…' },
     ],
-    defaults: () => ({ heading: '', items: [] }),
+    defaults: () => ({ heading: '', subheading: '', items: [], ctaLabel: '', ctaHref: '' }),
   },
   cta: {
     type: 'cta',
@@ -268,6 +338,125 @@ export const BLOCKS: Record<BlockType, BlockDef> = {
       style: 'primary',
     }),
   },
+  formCta: {
+    type: 'formCta',
+    label: 'Wezwanie do formularza',
+    description: 'Duży przycisk formularza, nagłówek, opis i informacja dodatkowa.',
+    fields: [
+      { name: 'label', label: 'Przycisk — tekst', type: 'text' },
+      { name: 'href', label: 'Przycisk — link', type: 'url', placeholder: 'https://forms…' },
+      { name: 'heading', label: 'Nagłówek', type: 'text' },
+      { name: 'intro', label: 'Opis', type: 'textarea', rows: 6 },
+      { name: 'notice', label: 'Informacja dodatkowa', type: 'textarea', rows: 3 },
+    ],
+    defaults: () => ({
+      label: 'Formularz zgłoszeniowy',
+      href: '',
+      heading: '',
+      intro: '',
+      notice: '',
+    }),
+  },
+  contact: {
+    type: 'contact',
+    label: 'Kontakt — osoba i mapa',
+    description: 'Dane osoby kontaktowej, zdjęcie, mapa i przycisk oferty sponsorskiej.',
+    fields: [
+      { name: 'title', label: 'Nagłówek', type: 'text' },
+      { name: 'background', label: 'Zdjęcie tła', type: 'image' },
+      { name: 'photo', label: 'Zdjęcie osoby', type: 'image' },
+      { name: 'photoAlt', label: 'Opis zdjęcia (alt)', type: 'text' },
+      { name: 'name', label: 'Imię i nazwisko', type: 'text' },
+      { name: 'role', label: 'Stanowisko', type: 'text' },
+      { name: 'email', label: 'Adres e-mail', type: 'text' },
+      { name: 'sponsorText', label: 'Tekst przy ofercie', type: 'textarea', rows: 4 },
+      { name: 'sponsorButtonLabel', label: 'Przycisk oferty — tekst', type: 'text' },
+      { name: 'sponsorHref', label: 'Przycisk oferty — link', type: 'url', hint: 'Puste = link z „Ustawień strony”.' },
+      { name: 'showMap', label: 'Pokaż mapę', type: 'checkbox' },
+    ],
+    defaults: () => ({
+      title: '',
+      background: '',
+      photo: '',
+      photoAlt: '',
+      name: '',
+      role: '',
+      email: '',
+      sponsorText: '',
+      sponsorButtonLabel: 'Zobacz ofertę',
+      sponsorHref: '',
+      showMap: true,
+    }),
+  },
+  vehicleList: {
+    type: 'vehicleList',
+    label: 'Lista bolidów',
+    description: 'Bolidy z bazy z galeriami, opisami i przyciskami.',
+    fields: [
+      { name: 'heading', label: 'Nagłówek', type: 'text' },
+      { name: 'lead', label: 'Wprowadzenie', type: 'textarea', rows: 3 },
+      { name: 'slugs', label: 'Slugi bolidów', type: 'textarea', rows: 4, hint: 'Jeden slug w linii. Puste = wszystkie bolidy.' },
+      { name: 'background', label: 'Zdjęcie tła', type: 'image' },
+      { name: 'moreLabel', label: 'Etykieta przycisku', type: 'text' },
+      { name: 'showGalleries', label: 'Pokaż galerie', type: 'checkbox' },
+    ],
+    defaults: () => ({
+      heading: '',
+      lead: '',
+      slugs: '',
+      background: '',
+      moreLabel: 'Zobacz więcej',
+      showGalleries: true,
+    }),
+  },
+  postList: {
+    type: 'postList',
+    label: 'Lista wpisów bloga',
+    description: 'Najnowsze opublikowane wpisy w siatce kart.',
+    fields: [
+      { name: 'heading', label: 'Nagłówek', type: 'text' },
+      { name: 'lead', label: 'Wprowadzenie', type: 'textarea', rows: 3 },
+      { name: 'limit', label: 'Liczba wpisów', type: 'text', placeholder: '6' },
+      {
+        name: 'columns',
+        label: 'Kolumny',
+        type: 'select',
+        options: [
+          { value: '2', label: '2 kolumny' },
+          { value: '3', label: '3 kolumny' },
+        ],
+      },
+      { name: 'allLabel', label: 'Link „wszystkie” — tekst', type: 'text' },
+      { name: 'allHref', label: 'Link „wszystkie” — adres', type: 'url', placeholder: '/blog' },
+    ],
+    defaults: () => ({
+      heading: '',
+      lead: '',
+      limit: '6',
+      columns: '3',
+      allLabel: '',
+      allHref: '',
+    }),
+  },
+  projectList: {
+    type: 'projectList',
+    label: 'Lista projektów',
+    description: 'Kategorie projektów z Ustawień strony, z opisami i linkami.',
+    fields: [
+      { name: 'heading', label: 'Nagłówek', type: 'text' },
+      { name: 'lead', label: 'Wprowadzenie', type: 'textarea', rows: 3 },
+      { name: 'categories', label: 'Slugi kategorii', type: 'textarea', rows: 4, hint: 'Jeden slug w linii. Puste = wszystkie kategorie.' },
+      { name: 'moreLabel', label: 'Etykieta linku', type: 'text' },
+      { name: 'showImages', label: 'Pokaż obrazki', type: 'checkbox' },
+    ],
+    defaults: () => ({
+      heading: '',
+      lead: '',
+      categories: '',
+      moreLabel: 'Zobacz więcej',
+      showImages: true,
+    }),
+  },
   youtube: {
     type: 'youtube',
     label: 'Film',
@@ -277,6 +466,13 @@ export const BLOCKS: Record<BlockType, BlockDef> = {
       { name: 'title', label: 'Tytuł (opcjonalnie)', type: 'text' },
     ],
     defaults: () => ({ videoId: '', title: '' }),
+  },
+  joinCta: {
+    type: 'joinCta',
+    label: 'Dołącz do nas',
+    description: 'Sekcja z filmem w tle i przyciskami członka oraz partnera.',
+    fields: [],
+    defaults: () => ({}),
   },
   quote: {
     type: 'quote',

@@ -1,87 +1,14 @@
 import Link from 'next/link'
 import { ChevronDown, ChevronUp, CornerDownRight, Pencil, Plus } from 'lucide-react'
 import { getNavTree } from '@/lib/data'
-import type { NavItem } from '@/lib/db/schema'
+import { getSiteLinks } from '@/lib/site-links'
 import { ADMIN_PATH } from '@/lib/admin'
 import { deleteNavItem, moveNavItem, saveNavItem } from '../../actions'
 import { AdminForm } from '@/components/admin/admin-form'
 import { DeleteButton } from '@/components/admin/delete-button'
-import { Checkbox, inputClass } from '@/components/admin/fields'
+import { NavFields } from '@/components/admin/nav-fields'
 
 const BASE = `${ADMIN_PATH}/nawigacja`
-
-function NavFields({
-  item,
-  parents,
-  defaultParentId,
-}: {
-  item?: NavItem
-  parents: NavItem[]
-  defaultParentId?: number | null
-}) {
-  const p = item ? `n${item.id}` : 'new'
-  return (
-    <div className="flex flex-col gap-4">
-      {item && (
-        <>
-          <input type="hidden" name="id" value={item.id} />
-          <input type="hidden" name="sortOrder" value={item.sortOrder} />
-        </>
-      )}
-
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="flex flex-col gap-1 text-xs text-muted-foreground" htmlFor={`${p}-label`}>
-          Etykieta
-          <input
-            id={`${p}-label`}
-            name="label"
-            defaultValue={item?.label}
-            required
-            maxLength={60}
-            placeholder="np. Bolidy"
-            className={inputClass}
-          />
-        </label>
-        <label className="flex flex-col gap-1 text-xs text-muted-foreground" htmlFor={`${p}-href`}>
-          Link
-          <input
-            id={`${p}-href`}
-            name="href"
-            defaultValue={item?.href}
-            required
-            maxLength={500}
-            placeholder="/bolidy"
-            className={inputClass}
-          />
-        </label>
-      </div>
-
-      <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-        <label className="flex flex-col gap-1 text-xs text-muted-foreground" htmlFor={`${p}-parent`}>
-          Rodzic
-          <select
-            id={`${p}-parent`}
-            name="parentId"
-            defaultValue={item?.parentId ?? defaultParentId ?? ''}
-            className={inputClass}
-          >
-            <option value="">— element główny —</option>
-            {parents
-              .filter((parent) => parent.id !== item?.id)
-              .map((parent) => (
-                <option key={parent.id} value={parent.id}>
-                  {parent.label}
-                </option>
-              ))}
-          </select>
-        </label>
-        <div className="pb-2">
-          <Checkbox name="isButton" label="Przycisk CTA" defaultChecked={item?.isButton} />
-        </div>
-      </div>
-    </div>
-  )
-}
 
 function MoveButton({
   id,
@@ -120,7 +47,7 @@ export default async function NavAdminPage({
   searchParams: Promise<{ edit?: string; add?: string }>
 }) {
   const { edit, add } = await searchParams
-  const tree = await getNavTree()
+  const [tree, links] = await Promise.all([getNavTree(), getSiteLinks()])
   const parents = tree.filter((item) => !item.isButton)
   const allItems = tree.flatMap((item) => [item, ...item.children])
 
@@ -161,7 +88,7 @@ export default async function NavAdminPage({
             </Link>
           </div>
           <AdminForm action={saveNavItem}>
-            <NavFields item={editItem} parents={parents} />
+            <NavFields item={editItem} parents={parents} links={links} />
           </AdminForm>
           <div className="mt-4 border-t border-border pt-4">
             <DeleteButton action={deleteNavItem} id={editItem.id} label="Usuń element" />
@@ -192,7 +119,7 @@ export default async function NavAdminPage({
           submitLabel={addParent ? 'Dodaj podelement' : 'Dodaj element'}
           resetOnSuccess
         >
-          <NavFields parents={parents} defaultParentId={addParent?.id ?? null} />
+          <NavFields parents={parents} defaultParentId={addParent?.id ?? null} links={links} />
         </AdminForm>
       </section>
 

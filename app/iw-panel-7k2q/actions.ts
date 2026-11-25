@@ -280,6 +280,7 @@ export async function addContentEntry(fd: FormData) {
   await requireCms()
   const areaKey = s(fd, 'area')
   const entryKey = s(fd, 'entryKey').trim()
+  const name = s(fd, 'name').trim().slice(0, 160)
   const area = contentAreaByKey.get(areaKey)
   if (!area) return
   const backToArea = `${ADMIN_PATH}/tresc/${areaKey}`
@@ -291,7 +292,7 @@ export async function addContentEntry(fd: FormData) {
   }
   await db
     .insert(siteContent)
-    .values({ area: areaKey, entryKey, data: {} })
+    .values({ area: areaKey, entryKey, data: name ? { title: name } : {} })
     .onConflictDoNothing()
   refresh()
   redirect(`${ADMIN_PATH}/tresc/${areaKey}/${encodeURIComponent(entryKey)}`)
