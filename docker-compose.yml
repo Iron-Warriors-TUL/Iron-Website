@@ -22,14 +22,18 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    # ADMIN_NAME/ADMIN_EMAIL/ADMIN_PASSWORD trafiają do kontenera wprost z .env.
+    # Nie używamy ${ADMIN_EMAIL:-}, bo przy braku zmiennej Compose wstrzykiwałby
+    # puste wartości i seed nie odróżniłby „brak” od „ustawione na pusto”.
+    # required: false zachowuje możliwość startu bez .env (środowisko dev).
+    env_file:
+      - path: .env
+        required: false
     environment:
       DATABASE_URL: postgresql://iw_user:${POSTGRES_PASSWORD:-iw_dev_password}@postgres:5432/ironwarriors
       # Domyślny sekret dev — kontener startuje bez .env. Nadpisz w produkcji.
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-local-development-secret-change-before-production}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
-      ADMIN_NAME: ${ADMIN_NAME:-Administrator}
-      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
       # Za reverse proxy: zob. MAINTENANCE.md (limit logowania wg adresu klienta).
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
       AUTH_IP_HEADER: ${AUTH_IP_HEADER:-}

@@ -10,9 +10,13 @@ const IMAGE_RE = /\.(jpe?g|png|webp|avif)$/i
 
 type MediaItem = { url: string; name: string; group: 'upload' | 'library' }
 
-async function localFiles(dir: string, group: MediaItem['group'], toUrl: (file: string) => string) {
+type LocalDir = 'uploads' | 'images'
+
+async function localFiles(dir: LocalDir, group: MediaItem['group'], toUrl: (file: string) => string) {
   try {
-    const files = await readdir(join(process.cwd(), dir))
+    // Rodzic 'public' jest literałem, więc Turbopack ogranicza śledzenie do public/<dir>
+    // zamiast trace'ować cały projekt (ostrzeżenie o dynamicznym dostępie do FS).
+    const files = await readdir(join(process.cwd(), 'public', dir))
     return files
       .filter((file) => IMAGE_RE.test(file))
       .map<MediaItem>((file) => ({ url: toUrl(file), name: file, group }))
@@ -27,8 +31,8 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const [uploads, library] = await Promise.all([
-    localFiles('public/uploads', 'upload', (file) => `/api/uploads/${file}`),
-    localFiles('public/images', 'library', (file) => `/images/${file}`),
+    localFiles('uploads', 'upload', (file) => `/api/uploads/${file}`),
+    localFiles('images', 'library', (file) => `/images/${file}`),
   ])
   const items: MediaItem[] = [...uploads, ...library]
 

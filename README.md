@@ -20,19 +20,28 @@ docker compose up --build
 ```
 
 Aplikacja będzie dostępna pod http://localhost:3000, a PostgreSQL pod portem `55432`.
-Docker Compose sam utworzy bazę, zastosuje migracje i dane startowe.
+Docker Compose sam utworzy bazę, zastosuje migracje i dane startowe. Kolejne restarty
+nie nadpisują treści dodanej w panelu (`scripts/seed-if-empty.mjs`).
 
 Zatrzymanie i usunięcie kontenerów:
 
 ```bash
-docker compose down
+docker compose down        # zachowuje wolumeny z bazą i uploadami
+# NIE używaj `docker compose down -v` — to usuwa całą treść i zdjęcia.
 ```
 
 Panel admina: http://localhost:3000/iw-panel-7k2q/login
 
-Konto administratora jest tworzone wyłącznie przez zmienne środowiskowe `ADMIN_EMAIL`,
-`ADMIN_PASSWORD` i opcjonalnie `ADMIN_NAME`. Jeśli któreś z nich brakuje, seed nie utworzy
-konta. Rejestracja nowych kont jest zablokowana.
+Konto administratora powstaje z `ADMIN_EMAIL`, `ADMIN_PASSWORD` (min. 12 znaków) i
+opcjonalnie `ADMIN_NAME` z pliku `.env` obok `docker-compose.yml` (nie `.env.local`).
+Bootstrap jest idempotentny, więc po pierwszym uruchomieniu możesz usunąć `ADMIN_PASSWORD`
+z `.env` — konto zostanie w bazie. Rejestracja w przeglądarce jest zablokowana; kolejne
+konta tworzy się z wnętrza kontenera:
+
+```bash
+docker compose exec -T app node scripts/create-account.mjs \
+  --email jan@example.com --name "Jan Kowalski" --role editor --password-stdin
+```
 
 ## Panel CMS — edycja całej strony
 

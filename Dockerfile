@@ -22,4 +22,6 @@ USER node
 EXPOSE 3000
 
 # Migracja i seed muszą poprzedzić build, ponieważ strony są prerenderowane z bazy.
-CMD ["sh", "-c", "pnpm db:migrate && pnpm db:seed && pnpm build && pnpm start"]
+# seed-if-empty nie nadpisuje treści dodanej w panelu przy kolejnych restartach.
+# Bootstrap admina jest osobny i idempotentny: po usunięciu ADMIN_* z .env po prostu się pomija.
+CMD ["sh", "-c", "pnpm db:migrate && node scripts/seed-if-empty.mjs && node scripts/create-account.mjs --from-env && pnpm build && pnpm start"]
