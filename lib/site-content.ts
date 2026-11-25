@@ -621,7 +621,7 @@ const innovar = p('Innovar', '/images/INNOVAR_poziome_jasne_tlo_4800px-768x192.p
 const msGroup = p('MS Group', '/images/partner-ms-group.png', 'https://ms-group.pl/')
 const arpaprint = p('Arpaprint', '/images/partner-arpaprint.png', 'https://www.arpaprint.pl/')
 const edred = p('EDRed', '/images/edred-1-768x269.png', 'https://edred.pl/')
-const avl = p('AVL', '/images/default-logo@3x.png', 'https://www.avl.com/en')
+const avl = p('AVL', '/images/partner-avl.svg', 'https://www.avl.com/en')
 const mnisw = p('MEN', '/images/01_znak_siatka_podstawowy_kolor_biale_tlo-768x239.png', 'https://gov.pl/web/nauka')
 const fundacja = p('Fundacja PŁ', '/images/fundacjapl.png', 'https://fundacja.p.lodz.pl/')
 const easy = p('Easy Composites', '/images/partner-easy-composites.jpg', 'https://www.easycomposites.eu/')
@@ -662,8 +662,8 @@ export const partners: PartnerYear[] = [
           columns: 4,
           height: 240,
           items: [
-            oiz, chemia, wipos, p('WEEIA PŁ', '/images/WEEIA_Logo.png', '#'), cti,
-            p('AVL', '/images/default-logo@3x.png', '#'), wwiw,
+            oiz, chemia, wipos, p('WEEIA PŁ', '/images/WEEIA_Logo.png', 'https://weeia.p.lodz.pl/'), cti,
+            p('AVL', '/images/partner-avl.svg', 'https://www.avl.com/'), wwiw,
           ],
         }],
       },

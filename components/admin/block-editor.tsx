@@ -93,6 +93,7 @@ const ICONS: Record<BlockType, LucideIcon> = {
   youtube: Video,
   joinCta: PlayCircle,
   quote: Quote,
+  fundingBar: Handshake,
   divider: Minus,
 }
 

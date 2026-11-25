@@ -9,6 +9,7 @@ export const user = pgTable('user', {
   image: text('image'),
   role: text('role').notNull().default('editor'),
   theme: text('theme').notNull().default('light'),
+  twoFactorEnabled: boolean('twoFactorEnabled').notNull().default(false),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
 })
@@ -73,6 +74,9 @@ export const projects = pgTable('projects', {
   heading: text('heading').notNull().default(''),
   imageUrls: text('image_urls').notNull().default(''),
   blocks: jsonb('blocks').$type<Block[]>().notNull().default([]),
+  fundingBar: boolean('funding_bar').notNull().default(false),
+  fundingBarText: text('funding_bar_text').notNull().default(''),
+  fundingBarLogo: text('funding_bar_logo').notNull().default(''),
   sortOrder: integer('sort_order').notNull().default(0),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),

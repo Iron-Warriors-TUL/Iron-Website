@@ -34,9 +34,10 @@ export async function requireCmsPage() {
   return session
 }
 
+/** Strona tylko dla administratora: niezalogowanych odsyła do logowania, edytorów na pulpit. */
 export async function requireAdminPage() {
-  const session = await getAdminSession()
-  if (!session) redirect(`${ADMIN_PATH}/login`)
+  const session = await requireCmsPage()
+  if (session.user.role !== 'admin') redirect(`${ADMIN_PATH}?brak-uprawnien=1`)
   return session
 }
 

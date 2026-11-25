@@ -10,7 +10,7 @@ import { isHttpsUrl, isSafePath } from './safe-url'
  * app/iw-panel-7k2q/actions.ts tylko z tego korzystają.
  */
 
-export type FormState = { error?: string; ok?: boolean }
+export type FormState = { error?: string; ok?: boolean; message?: string }
 
 const str = (max: number) => z.string().trim().max(max)
 const optStr = (max: number) =>
@@ -123,6 +123,9 @@ export const projectSchema = z.object({
   description: str(10000),
   heading: str(500),
   imageUrls: str(4000),
+  fundingBar: z.boolean(),
+  fundingBarText: str(2000),
+  fundingBarLogo: imageUrl.transform((v) => v ?? ''),
   sortOrder: int,
 })
 

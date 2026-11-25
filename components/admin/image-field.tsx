@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ImagePlus, RefreshCw, Trash2, UploadCloud } from 'lucide-react'
 import { FixedImage } from '@/components/site/smart-image'
 import { cn } from '@/lib/utils'
@@ -24,6 +24,19 @@ export function ImageField({
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  // Po wyczyszczeniu formularza (np. po dodaniu partnera) wraca wartość początkowa.
+  useEffect(() => {
+    const form = rootRef.current?.closest('form')
+    if (!form) return
+    const onReset = () => {
+      setUrlState(defaultValue ?? '')
+      onChange?.(defaultValue ?? '')
+    }
+    form.addEventListener('reset', onReset)
+    return () => form.removeEventListener('reset', onReset)
+  }, [defaultValue, onChange])
 
   function setUrl(next: string) {
     setUrlState(next)
@@ -44,7 +57,7 @@ export function ImageField({
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
+    <div ref={rootRef} className="flex flex-col gap-1.5">
       <span className="text-sm font-medium">{label}</span>
       <input type="hidden" name={name} value={url} />
 

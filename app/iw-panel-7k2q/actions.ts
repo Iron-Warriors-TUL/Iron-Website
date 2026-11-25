@@ -16,6 +16,7 @@ import { hashPassword } from 'better-auth/crypto'
 import { collectDescendantIds, validateNavParent } from '@/lib/navigation'
 import { hasValidImageSignature, imageExtension, MAX_IMAGE_BYTES } from '@/lib/upload'
 import { isValidPageSlug } from '@/lib/page-slug'
+import { canEditContentArea } from '@/lib/roles'
 import {
   bool,
   ContentFieldError,
@@ -62,7 +63,7 @@ async function nextNavSortOrder(parentId: number | null, excludeId: number) {
 }
 
 export async function saveNavItem(_: FormState, fd: FormData): Promise<FormState> {
-  await requireCms()
+  await requireAdmin()
   try {
     const data = navSchema.parse({
       label: s(fd, 'label'),
@@ -94,7 +95,7 @@ export async function saveNavItem(_: FormState, fd: FormData): Promise<FormState
 }
 
 export async function moveNavItem(fd: FormData) {
-  await requireCms()
+  await requireAdmin()
   const itemId = id.parse(s(fd, 'id'))
   const items = await db
     .select({ id: navItems.id, parentId: navItems.parentId, sortOrder: navItems.sortOrder })
@@ -111,7 +112,7 @@ export async function moveNavItem(fd: FormData) {
 }
 
 export async function deleteNavItem(fd: FormData) {
-  await requireCms()
+  await requireAdmin()
   const itemId = id.parse(s(fd, 'id'))
   const allItems = await db.select({ id: navItems.id, parentId: navItems.parentId }).from(navItems)
   const idsToDelete = collectDescendantIds(allItems, itemId)
@@ -218,6 +219,9 @@ export async function saveProject(_: FormState, fd: FormData): Promise<FormState
         description: s(fd, 'description'),
         heading: s(fd, 'heading'),
         imageUrls: s(fd, 'imageUrls'),
+        fundingBar: bool(fd, 'fundingBar'),
+        fundingBarText: s(fd, 'fundingBarText'),
+        fundingBarLogo: s(fd, 'fundingBarLogo'),
         sortOrder: s(fd, 'sortOrder') || '0',
       }),
       blocks: parseBlocks(s(fd, 'blocks')),
@@ -245,12 +249,13 @@ export async function deleteProject(fd: FormData) {
 /* ---------- Generyczna treść strony ---------- */
 
 export async function saveContent(_: FormState, fd: FormData): Promise<FormState> {
-  await requireCms()
+  const session = await requireCms()
   try {
     const areaKey = s(fd, 'area')
     const entryKey = s(fd, 'entryKey')
     const area = contentAreaByKey.get(areaKey)
     if (!area) return { error: 'Nieznany obszar treści.' }
+    if (!canEditContentArea(session.user.role, areaKey)) return { error: 'Tę sekcję może zmieniać tylko administrator.' }
     if (!isValidEntryKey(entryKey)) {
       return { error: 'Nieprawidłowy klucz wpisu.' }
     }
@@ -282,12 +287,12 @@ export async function saveContent(_: FormState, fd: FormData): Promise<FormState
 }
 
 export async function addContentEntry(fd: FormData) {
-  await requireCms()
+  const session = await requireCms()
   const areaKey = s(fd, 'area')
   const entryKey = s(fd, 'entryKey').trim()
   const name = s(fd, 'name').trim().slice(0, 160)
   const area = contentAreaByKey.get(areaKey)
-  if (!area) return
+  if (!area || !canEditContentArea(session.user.role, areaKey)) return
   const backToArea = `${ADMIN_PATH}/tresc/${areaKey}`
   if (!isValidEntryKey(entryKey)) {
     redirect(`${backToArea}?error=key`)
@@ -304,10 +309,10 @@ export async function addContentEntry(fd: FormData) {
 }
 
 export async function deleteContentEntry(fd: FormData) {
-  await requireCms()
+  const session = await requireCms()
   const areaKey = s(fd, 'area')
   const entryKey = s(fd, 'entryKey')
-  if (!contentAreaByKey.has(areaKey)) return
+  if (!contentAreaByKey.has(areaKey) || !canEditContentArea(session.user.role, areaKey)) return
   await db
     .delete(siteContent)
     .where(and(eq(siteContent.area, areaKey), eq(siteContent.entryKey, entryKey)))
@@ -422,7 +427,7 @@ export async function saveAccount(_: FormState, fd: FormData): Promise<FormState
   }
 
   refresh()
-  redirect(`${ADMIN_PATH}/konta`)
+  redirect(`${ADMIN_PATH}/ustawienia#konta`)
   return { ok: true }
 }
 
@@ -457,18 +462,18 @@ export async function deleteAccount(fd: FormData) {
     client.release()
   }
   refresh()
-  redirect(`${ADMIN_PATH}/konta`)
+  redirect(`${ADMIN_PATH}/ustawienia#konta`)
 }
 
 export async function resetAccountSecurity(fd: FormData) {
-  await requireAdmin()
+  const session = await requireAdmin()
   const userId = s(fd, 'id')
-  if (!userId) return
+  // Własne 2FA wyłącza się w „Bezpieczeństwo” kodem z aplikacji, nie resetem administratora.
+  if (!userId || userId === session.user.id) return
 
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
-    await client.query('DELETE FROM "passkey" WHERE "userId" = $1', [userId])
     await client.query('DELETE FROM "twoFactor" WHERE "userId" = $1', [userId])
     await client.query(
       'UPDATE "user" SET "twoFactorEnabled" = FALSE, "updatedAt" = NOW() WHERE "id" = $1',

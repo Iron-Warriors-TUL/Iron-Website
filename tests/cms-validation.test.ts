@@ -108,9 +108,15 @@ describe('projectSchema', () => {
       description: '',
       heading: '',
       imageUrls: '',
+      fundingBar: false,
+      fundingBarText: '',
+      fundingBarLogo: '',
       sortOrder: '5',
     }
     assert.equal(projectSchema.parse(base).sortOrder, 5)
+    assert.equal(projectSchema.parse(base).fundingBarLogo, '')
+    assert.equal(projectSchema.parse({ ...base, fundingBarLogo: '/images/logo-mnisw.png' }).fundingBarLogo, '/images/logo-mnisw.png')
+    assert.throws(() => projectSchema.parse({ ...base, fundingBarLogo: 'javascript:alert(1)' }))
     assert.throws(() => projectSchema.parse({ ...base, category: '' }))
     assert.throws(() => projectSchema.parse({ ...base, title: '' }))
   })

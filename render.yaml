@@ -1,0 +1,44 @@
+# Podgląd strony na Render (darmowy plan). Instrukcja: DEPLOY-RENDER.md
+databases:
+  - name: iw-db
+    plan: free
+    region: frankfurt
+    databaseName: ironwarriors
+    user: iw_user
+    postgresMajorVersion: "17"
+
+services:
+  - type: web
+    name: iron-warriors
+    runtime: node
+    plan: free
+    region: frankfurt
+    # Ręczne wdrożenia: kolejne commity nie restartują podglądu w trakcie oglądania
+    # przez klienta (restart kasuje zdjęcia wgrane w panelu).
+    autoDeployTrigger: "off"
+    buildCommand: >-
+      corepack enable &&
+      corepack pnpm install --frozen-lockfile &&
+      corepack pnpm db:migrate &&
+      node scripts/seed-if-empty.mjs &&
+      corepack pnpm build
+    startCommand: corepack pnpm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: iw-db
+          property: connectionString
+      - key: BETTER_AUTH_SECRET
+        generateValue: true
+      - key: SITE_NOINDEX
+        value: "true"
+      - key: ADMIN_NAME
+        value: Administrator
+      # Render poprosi o te dwie wartości przy tworzeniu Blueprintu.
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false

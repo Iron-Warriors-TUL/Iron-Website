@@ -35,6 +35,7 @@ export type BlockType =
   | 'youtube'
   | 'joinCta'
   | 'quote'
+  | 'fundingBar'
   | 'divider'
 
 export type Block = { id: string; type: BlockType } & Record<string, unknown>
@@ -630,6 +631,19 @@ export const BLOCKS: Record<BlockType, BlockDef> = {
       { name: 'author', label: 'Autor', type: 'text' },
     ],
     defaults: () => ({ text: '', author: '' }),
+  },
+  fundingBar: {
+    type: 'fundingBar',
+    label: 'Belka dofinansowania',
+    description: 'Logotypy instytucji na górze, tytuł i opis po lewej, informacje o sezonie po prawej.',
+    fields: [
+      { name: 'logos', label: 'Logotypy / obrazy belki', type: 'images' },
+      { name: 'title', label: 'Tytuł', type: 'text' },
+      { name: 'description', label: 'Opis po lewej', type: 'textarea', rows: 6 },
+      { name: 'period', label: 'Sezon / okres realizacji', type: 'text' },
+      { name: 'lines', label: 'Informacje po prawej (jedna na linię)', type: 'textarea', rows: 4 },
+    ],
+    defaults: () => ({ logos: [], title: '', description: '', period: '', lines: '' }),
   },
   divider: {
     type: 'divider',

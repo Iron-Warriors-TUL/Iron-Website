@@ -9,6 +9,7 @@ import { ImageField } from './image-field'
 import { LinesField } from './lines-field'
 import { PageEditor } from './page-editor'
 import { PeopleEditor } from './people-editor'
+import { LinesEditor, type LineReferences } from './lines-editor'
 import { RichTextField } from './rich-text-field'
 import { deleteContentEntry, saveContent } from '@/app/iw-panel-7k2q/actions'
 
@@ -17,11 +18,13 @@ export function ContentForm({
   entryKey,
   data,
   isDefault,
+  references,
 }: {
   areaKey: string
   entryKey: string
   data: Data
   isDefault: boolean
+  references?: LineReferences
 }) {
   const area = contentAreaByKey.get(areaKey) as ContentArea
   const value = (name: string) => (typeof data[name] === 'string' ? (data[name] as string) : '')
@@ -70,13 +73,11 @@ export function ContentForm({
                 rows={field.rows ?? 5}
               />
             ) : field.type === 'lines' ? (
-              <textarea
-                id={`f-${field.name}`}
+              <LinesEditor
                 name={field.name}
-                defaultValue={linesToString(data[field.name], field.columns.length)}
-                rows={Math.max(4, Math.min(16, linesToString(data[field.name], field.columns.length).split('\n').length + 1))}
-                className={`${inputClass} font-mono text-xs leading-relaxed`}
-                spellCheck={false}
+                columns={field.columns}
+                initial={asLines(data[field.name], field.columns.length)}
+                references={references}
               />
             ) : field.type === 'checkbox' ? (
               <Checkbox name={field.name} label="Włączone" defaultChecked={data[field.name] === true} />

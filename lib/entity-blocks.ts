@@ -27,6 +27,9 @@ export type ProjectLike = {
   description: string
   heading: string
   imageUrls: string
+  fundingBar?: boolean
+  fundingBarText?: string
+  fundingBarLogo?: string
 }
 
 function block(type: BlockType, id: string, values: Record<string, unknown>): Block {
@@ -100,6 +103,37 @@ export function projectBlocks(project: ProjectLike): Block[] {
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
+
+  if (project.fundingBar) {
+    const logoSource = project.fundingBarLogo?.trim() || project.imageUrls
+    const logos = logoSource
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+    const custom = (project.fundingBarText ?? '').trim()
+    const lines = custom
+      ? custom
+          .split('\n')
+          .map((line) => line.trim())
+          .filter(Boolean)
+      : [
+          'Dofinansowano ze środków budżetu państwa',
+          project.program,
+          project.funding ? `Dofinansowanie: ${project.funding}` : '',
+          project.ownContribution ? `Wkład własny: ${project.ownContribution}` : '',
+          project.totalValue ? `Całkowita wartość: ${project.totalValue}` : '',
+        ].filter(Boolean)
+
+    return [
+      block('fundingBar', 'project-funding-bar', {
+        logos,
+        title: project.title,
+        description: project.description,
+        period: project.period,
+        lines: lines.join('\n'),
+      }),
+    ]
+  }
 
   if (images.length > 0) {
     blocks.push(block('imageRow', 'project-images', { images }))

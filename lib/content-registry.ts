@@ -341,7 +341,7 @@ export const contentAreas: ContentArea[] = [
     fields: [
       {
         name: 'items', label: 'Partnerzy', type: 'lines', columns: ['Id (nie zmieniaj)', 'Nazwa', 'Logo', 'Link'],
-        hint: 'Id służy do odwołań z roczników. Nowe wpisy dodawaj z wolnym Id, np. c043.',
+        hint: 'Id nadaje się automatycznie po kliknięciu „Dodaj wiersz” i służy do odwołań z roczników.',
       },
     ],
     defaults: () => partnerCatalogDefaults,
@@ -368,7 +368,7 @@ export const contentAreas: ContentArea[] = [
       { name: 'height', label: 'Wysokość karty', type: 'select', options: ['240', '291'] },
       {
         name: 'items', label: 'Partnerzy w grupie', type: 'lines', columns: ['Id partnera'],
-        hint: 'Id partnera z katalogu, np. c001.',
+        hint: 'Wybierz partnera z katalogu. Nowego partnera dodaj najpierw w „Partnerzy – katalog”.',
       },
     ],
     defaults: partnerGroupDefaults,
@@ -483,7 +483,7 @@ export const contentAreas: ContentArea[] = [
       { name: 'logo', label: 'Logo', type: 'image' },
       {
         name: 'socials', label: 'Social media', type: 'lines', columns: ['Nazwa', 'Link', 'Ikona'],
-        hint: 'Dozwolone ikony: facebook, instagram, youtube, linkedin.',
+        hint: 'Ikonę wybierz z listy.',
       },
       { name: 'address', label: 'Adres', type: 'textarea', rows: 5 },
       { name: 'copyright', label: 'Copyright', type: 'text' },

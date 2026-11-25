@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { ChevronDown, ChevronUp, CornerDownRight, Pencil, Plus } from 'lucide-react'
 import { getNavTree } from '@/lib/data'
 import { getSiteLinks } from '@/lib/site-links'
-import { ADMIN_PATH } from '@/lib/admin'
+import { ADMIN_PATH, requireAdminPage } from '@/lib/admin'
 import { deleteNavItem, moveNavItem, saveNavItem } from '../../actions'
 import { AdminForm } from '@/components/admin/admin-form'
 import { DeleteButton } from '@/components/admin/delete-button'
@@ -46,6 +46,7 @@ export default async function NavAdminPage({
 }: {
   searchParams: Promise<{ edit?: string; add?: string }>
 }) {
+  await requireAdminPage()
   const { edit, add } = await searchParams
   const [tree, links] = await Promise.all([getNavTree(), getSiteLinks()])
   const parents = tree.filter((item) => !item.isButton)
@@ -67,7 +68,7 @@ export default async function NavAdminPage({
   return (
     <div className="flex flex-col gap-8">
       <div>
-        <h1 className="text-3xl font-bold">Nawigacja</h1>
+        <h1 className="text-3xl font-bold">Menu strony</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Ułóż menu w strukturze drzewa: elementy główne i ich podelementy. Kolejność zmieniasz strzałkami,
           a edycja otwiera tylko jeden formularz — bez przewijania dziesiątek pól.

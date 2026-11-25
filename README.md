@@ -4,6 +4,8 @@ Lokalne środowisko pełnoprawne: PostgreSQL w Dockerze, better-auth i panel CMS
 
 👉 **Kompletna instrukcja uruchomienia na nowym komputerze: [SETUP.md](SETUP.md)**
 
+Wdrożenie i utrzymanie na serwerze (Docker, HTTPS, kopie zapasowe, aktualizacje): [MAINTENANCE.md](MAINTENANCE.md)
+
 Krótka wersja (zakładając, że kontener `iw-postgres` już istnieje):
 
 1. Upewnij się, że **Docker Desktop jest uruchomiony** (jeśli zniknął, błąd `ECONNREFUSED ...:55432` oznacza właśnie to).

@@ -67,13 +67,16 @@ export function DesktopNav({ nav }: { nav: NavNode[] }) {
               )}
 
               {!item.isButton && item.children.length > 0 && openIndex === index && (
-                <ul className="absolute left-0 top-full z-[9999] w-[220px] border-t border-[#c4c4c4] bg-white py-1 shadow-none">
+                <ul className="absolute left-0 top-full z-[9999] min-w-[220px] bg-header px-[15px] pb-3 pt-1">
                   {item.children.map((child) => (
-                    <li key={child.id} className="border-b border-[#c4c4c4] last:border-b-0">
+                    <li key={child.id}>
                       <Link
                         href={child.href}
                         onClick={onLinkClick(child.href)}
-                        className="block px-[15px] py-2.5 font-heading text-[12.8px] text-black transition-colors hover:text-[#f08400] min-[1025px]:text-sm"
+                        className={cn(
+                          'block whitespace-nowrap py-1.5 font-heading text-[12.8px] text-white/85 transition-colors hover:text-primary min-[1025px]:text-sm',
+                          isActive(pathname, child.href) && 'text-primary',
+                        )}
                       >
                         {child.label}
                       </Link>
