@@ -1,71 +1,152 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { usePathname } from 'next/navigation'
 
 const LOGO = '/images/12431645_1087304941293749_1342854788_n-removebg-preview-riqbwh2hpz3jazv6auesrscoodjxwgde3wxgi8mqkg.png'
 /** Ekran jest widoczny co najmniej tyle, żeby nie mignął przy szybkim łączu. */
-const MIN_VISIBLE_MS = 900
-/** Bezpiecznik: nie trzymamy użytkownika dłużej, nawet gdy jakieś medium (np. iframe) się wiesza. */
-const MAX_VISIBLE_MS = 4000
-const FADE_MS = 450
+const MIN_VISIBLE_MS = 1000
+/** Bezpiecznik: nie trzymamy użytkownika dłużej, nawet gdy jakieś medium się wiesza. */
+const MAX_VISIBLE_MS = 3000
+const FADE_MS = 400
+
+type Phase = 'shown' | 'hiding' | 'hidden'
+
+/** Czeka, aż obrazy widoczne na nowej stronie się pobiorą (albo upłynie limit). */
+function waitForMedia(timeoutMs: number) {
+  const pending = Array.from(document.querySelectorAll('main img')).filter(
+    (img) => !(img as HTMLImageElement).complete && (img as HTMLImageElement).loading !== 'lazy',
+  ) as HTMLImageElement[]
+  const loaded = Promise.all(
+    pending.map(
+      (img) =>
+        new Promise<void>((resolve) => {
+          img.addEventListener('load', () => resolve(), { once: true })
+          img.addEventListener('error', () => resolve(), { once: true })
+        }),
+    ),
+  )
+  return Promise.race([loaded, new Promise<void>((resolve) => window.setTimeout(resolve, timeoutMs))])
+}
+
+/** Czy kliknięcie w link prowadzi do innej podstrony tej witryny (a nie np. kotwicy lub nowej karty). */
+function isPageNavigation(event: MouseEvent) {
+  if (event.defaultPrevented || event.button !== 0) return false
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return false
+  const anchor = (event.target as Element | null)?.closest?.('a')
+  if (!anchor || anchor.target === '_blank' || anchor.hasAttribute('download')) return false
+  const url = new URL(anchor.href, window.location.href)
+  if (url.origin !== window.location.origin) return false
+  return url.pathname !== window.location.pathname
+}
 
 /**
- * Ekran ładowania przy pierwszym wejściu na stronę: tło jak navbar, logo i
- * pomarańczowe kropki krążące po okręgu. Znika po zdarzeniu `load` (wszystkie
- * obrazy i media pobrane), nie wcześniej niż po MIN_VISIBLE_MS.
- * Jest renderowany w HTML z serwera, więc widać go od pierwszej klatki.
- * Przy nawigacji wewnątrz strony layout się nie przeładowuje, więc ekran się nie powtarza.
+ * Ekran ładowania: tło jak navbar, logo i pomarańczowy wirujący łuk.
+ * Pokazuje się przy pierwszym wejściu i przy każdym przejściu na inną podstronę,
+ * znika płynnie (ease-in-out) po pobraniu mediów: min. 1 s, maks. 3 s.
  */
 export function SplashScreen() {
-  const [phase, setPhase] = useState<'visible' | 'fading' | 'gone'>('visible')
+  const pathname = usePathname()
+  const [phase, setPhase] = useState<Phase>('shown')
+  const renderedPath = useRef(pathname)
+  const controller = useRef<{ onRouteRendered: () => void } | null>(null)
 
   useEffect(() => {
-    const startedAt = performance.now()
-    let fadeTimer: number | undefined
-    let removeTimer: number | undefined
+    let shownAt = performance.now()
+    let timers: number[] = []
+    let visible = true
 
-    const hide = () => {
-      if (fadeTimer !== undefined) return
-      const wait = Math.max(0, MIN_VISIBLE_MS - (performance.now() - startedAt))
-      fadeTimer = window.setTimeout(() => {
-        setPhase('fading')
-        removeTimer = window.setTimeout(() => setPhase('gone'), FADE_MS)
-      }, wait)
+    const clearTimers = () => {
+      timers.forEach((id) => window.clearTimeout(id))
+      timers = []
     }
 
-    if (document.readyState === 'complete') hide()
-    else window.addEventListener('load', hide, { once: true })
-    const failsafe = window.setTimeout(hide, MAX_VISIBLE_MS)
+    const hideWhenReady = (ready: Promise<unknown>) => {
+      let done = false
+      const hide = () => {
+        if (done) return
+        done = true
+        clearTimers()
+        const wait = Math.max(0, MIN_VISIBLE_MS - (performance.now() - shownAt))
+        timers.push(
+          window.setTimeout(() => {
+            visible = false
+            setPhase('hiding')
+            timers.push(window.setTimeout(() => setPhase('hidden'), FADE_MS))
+          }, wait),
+        )
+      }
+      ready.then(hide)
+      timers.push(window.setTimeout(hide, MAX_VISIBLE_MS))
+    }
 
+    const show = () => {
+      clearTimers()
+      shownAt = performance.now()
+      visible = true
+      setPhase('shown')
+      // Bezpiecznik, gdyby nowa podstrona nie dała znać (np. błąd nawigacji).
+      timers.push(window.setTimeout(() => hideWhenReady(Promise.resolve()), MAX_VISIBLE_MS))
+    }
+
+    // Pierwsze wejście: czekamy na zdarzenie `load` (wszystkie media strony).
+    hideWhenReady(
+      document.readyState === 'complete'
+        ? Promise.resolve()
+        : new Promise<void>((resolve) => window.addEventListener('load', () => resolve(), { once: true })),
+    )
+
+    // Przejścia między podstronami: ekran wchodzi od razu po kliknięciu linku lub „wstecz”.
+    const onClick = (event: MouseEvent) => {
+      if (isPageNavigation(event)) show()
+    }
+    const onPopState = () => {
+      show()
+      // Router mógł już wyrenderować poprzednią podstronę przed tym zdarzeniem.
+      if (window.location.pathname === renderedPath.current) hideWhenReady(waitForMedia(MAX_VISIBLE_MS))
+    }
+    controller.current = {
+      onRouteRendered: () => {
+        if (!visible) show()
+        hideWhenReady(waitForMedia(MAX_VISIBLE_MS))
+      },
+    }
+
+    document.addEventListener('click', onClick, true)
+    window.addEventListener('popstate', onPopState)
     return () => {
-      window.removeEventListener('load', hide)
-      window.clearTimeout(failsafe)
-      window.clearTimeout(fadeTimer)
-      window.clearTimeout(removeTimer)
+      document.removeEventListener('click', onClick, true)
+      window.removeEventListener('popstate', onPopState)
+      clearTimers()
+      controller.current = null
     }
   }, [])
 
-  if (phase === 'gone') return null
+  // Nowa podstrona wyrenderowana: czekamy na jej obrazy i chowamy ekran.
+  useEffect(() => {
+    if (pathname === renderedPath.current) return
+    renderedPath.current = pathname
+    controller.current?.onRouteRendered()
+  }, [pathname])
 
-  return <SplashView fading={phase === 'fading'} />
+  return <SplashView phase={phase} />
 }
 
 /** Sam wygląd ekranu ładowania. Używany też przez app/loading.tsx podczas strumieniowania strony. */
-export function SplashView({ fading = false }: { fading?: boolean }) {
+export function SplashView({ phase = 'shown' }: { phase?: Phase }) {
   return (
     <div
-      className="iw-splash fixed inset-0 z-[1000] flex flex-col items-center justify-center gap-10 bg-header transition-opacity ease-out"
-      style={{ opacity: fading ? 0 : 1, transitionDuration: `${FADE_MS}ms` }}
+      className="iw-splash fixed inset-0 z-[1000] flex flex-col items-center justify-center gap-8 bg-header"
+      data-phase={phase}
       role="status"
       aria-live="polite"
+      aria-hidden={phase === 'hidden'}
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- musi być widoczne od razu, bez lazy-loadingu next/image */}
-      <img src={LOGO} alt="Iron Warriors" width={151} height={160} className="h-[120px] w-auto md:h-[160px]" fetchPriority="high" />
-      <div className="iw-spinner" aria-hidden="true">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <span key={i} />
-        ))}
-      </div>
+      <img src={LOGO} alt="Iron Warriors" width={151} height={160} className="h-[110px] w-auto md:h-[140px]" fetchPriority="high" />
+      <svg className="iw-spinner" viewBox="0 0 50 50" aria-hidden="true">
+        <circle cx="25" cy="25" r="20" fill="none" strokeWidth="4" strokeLinecap="round" />
+      </svg>
       <span className="sr-only">Wczytywanie strony…</span>
     </div>
   )

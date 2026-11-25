@@ -11,6 +11,10 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   return (
     <>
       <SplashScreen />
+      {/* Bez JavaScriptu ekran ładowania nie zniknie sam, więc go nie pokazujemy. */}
+      <noscript>
+        <style>{'.iw-splash{display:none}'}</style>
+      </noscript>
       <Navbar />
       <main className="pt-[104px] min-[768px]:pt-[122px] min-[1200px]:pt-[146px]">
         <PageMotion>{children}</PageMotion>
