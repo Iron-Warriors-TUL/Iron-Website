@@ -50,7 +50,7 @@ export default async function HomePage() {
           <h2 data-reveal className="text-[42px] font-semibold leading-[59px] text-heading md:text-[59px]">{text(home.aboutHeading)}</h2>
           <Paragraphs text={text(home.aboutTop)} className="mt-6 max-w-[1100px]" />
 
-          <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-[540px_540px] lg:justify-center">
+          <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,540px)_minmax(0,540px)] lg:justify-center">
             <div className="flex flex-col gap-5">
               <Paragraphs text={text(home.aboutLeft)} />
               <Gallery
@@ -102,7 +102,7 @@ export default async function HomePage() {
               {vehicle.slug === featured[0]?.slug && (
                 <h2 data-reveal className="text-[42px] font-semibold leading-[59px] text-heading md:text-[59px]">{text(home.vehiclesHeading)}</h2>
               )}
-              <div className="mt-2 grid grid-cols-1 gap-5 lg:grid-cols-[540px_652px] lg:justify-center">
+              <div className="mt-2 grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,540px)_minmax(0,652px)] lg:justify-center">
                 <div className="flex flex-col">
                   <h3 data-reveal className="text-[24px] font-semibold text-black/48 md:text-[30px] md:leading-[30px]">
                     {text(content.heading)}

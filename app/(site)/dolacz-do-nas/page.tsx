@@ -54,7 +54,7 @@ export default async function JoinPage() {
             {value('notice')}
           </h2>
 
-          <div className="mt-16 grid grid-cols-1 items-start gap-8 md:grid-cols-[463px_463px] md:justify-between">
+          <div className="mt-16 grid grid-cols-1 items-start gap-8 md:grid-cols-[minmax(0,463px)_minmax(0,463px)] md:justify-between">
             <div className="flex flex-col gap-5">
               <h2 data-reveal className="text-[24px] font-thin text-heading md:text-[29px] md:leading-[39px]">{value('gainsHeading')}</h2>
               <BulletList items={items('gains')} />
@@ -68,7 +68,7 @@ export default async function JoinPage() {
             />
           </div>
 
-          <div className="mt-28 grid grid-cols-1 items-start gap-8 md:grid-cols-[463px_463px] md:justify-between">
+          <div className="mt-28 grid grid-cols-1 items-start gap-8 md:grid-cols-[minmax(0,463px)_minmax(0,463px)] md:justify-between">
             <Gallery
               images={[value('expectationsImage')]}
               alt={value('expectationsImageAlt')}
@@ -107,7 +107,7 @@ export default async function JoinPage() {
                   <h2 data-reveal className="text-[30px] font-semibold text-heading md:text-[44px] md:leading-[44px]">
                     {title}
                   </h2>
-                  <div className="mt-10 grid grid-cols-1 items-start gap-8 md:grid-cols-[463px_463px] md:justify-between">
+                  <div className="mt-10 grid grid-cols-1 items-start gap-8 md:grid-cols-[minmax(0,463px)_minmax(0,463px)] md:justify-between">
                     {imageOnRight ? (
                       <>
                         {copy}
