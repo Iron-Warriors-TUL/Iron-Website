@@ -8,6 +8,7 @@ export const user = pgTable('user', {
   image: text('image'),
   role: text('role').notNull().default('editor'),
   theme: text('theme').notNull().default('light'),
+  twoFactorEnabled: boolean('twoFactorEnabled').notNull().default(false),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
 })

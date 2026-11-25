@@ -13,7 +13,6 @@ const links = [
   { href: ADMIN_PATH, label: 'Pulpit', icon: LayoutDashboard },
   { href: `${ADMIN_PATH}/bezpieczenstwo`, label: 'Bezpieczeństwo', icon: KeyRound },
   { href: `${ADMIN_PATH}/tresc`, label: 'Treść strony', icon: PencilLine },
-  { href: `${ADMIN_PATH}/nawigacja`, label: 'Nawigacja (navbar)', icon: Menu },
   { href: `${ADMIN_PATH}/tresc/people/main`, label: 'Osoby', icon: Users },
   { href: `${ADMIN_PATH}/blog`, label: 'Blog', icon: FileText },
   { href: `${ADMIN_PATH}/bolidy`, label: 'Bolidy', icon: Car },
@@ -24,7 +23,11 @@ export default async function DashLayout({ children }: { children: React.ReactNo
   const session = await requireCmsPage()
   const role = session.user.role
   const visibleLinks = role === 'admin'
-    ? [...links, { href: `${ADMIN_PATH}/konta`, label: 'Konta', icon: ShieldCheck }]
+    ? [
+        ...links,
+        { href: `${ADMIN_PATH}/nawigacja`, label: 'Nawigacja (navbar)', icon: Menu },
+        { href: `${ADMIN_PATH}/konta`, label: 'Konta i role', icon: ShieldCheck },
+      ]
     : links
 
   const [account] = await db

@@ -1,7 +1,7 @@
 import { betterAuth } from 'better-auth'
-import { APIError } from 'better-auth/api'
+import { APIError, createAuthMiddleware, getSessionFromCtx } from 'better-auth/api'
 import { twoFactor } from 'better-auth/plugins'
-import { passkey } from '@better-auth/passkey'
+import { nextCookies } from 'better-auth/next-js'
 import { pool } from '@/lib/db'
 
 const isV0Preview = Boolean(
@@ -15,11 +15,26 @@ export const auth = betterAuth({
   appName: 'Iron Warriors CMS',
   database: pool,
   plugins: [
-    twoFactor(),
-    // rpID/origin są wyliczane przez wtyczkę z baseURL — nie nadpisujemy ich
-    // ręcznie, żeby passkeye działały też poza localhost (np. na Vercel).
-    passkey({ rpName: 'Iron Warriors CMS' }),
+    twoFactor({ issuer: 'Iron Warriors CMS' }),
+    // Musi być ostatnia: pozwala akcjom serwerowym (auth.api.*) ustawiać ciasteczka sesji.
+    nextCookies(),
   ],
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      // Wyłączenie 2FA wymaga kodu z aplikacji lub kodu zapasowego. Robi to akcja serwerowa
+      // disableTwoFactor (sprawdza hasło i kod), więc bezpośrednie wywołanie z przeglądarki blokujemy.
+      if (ctx.path === '/two-factor/disable' && ctx.request) {
+        throw new APIError('FORBIDDEN', { message: 'Wyłącz 2FA w panelu, podając kod z aplikacji.' })
+      }
+      // Ponowne „włączenie” przy aktywnym 2FA podmieniłoby klucz bez podania kodu.
+      if (ctx.path === '/two-factor/enable') {
+        const session = await getSessionFromCtx(ctx)
+        if (session?.user?.twoFactorEnabled) {
+          throw new APIError('FORBIDDEN', { message: '2FA jest już włączone. Najpierw je wyłącz, podając kod.' })
+        }
+      }
+    }),
+  },
   baseURL:
     process.env.BETTER_AUTH_URL ??
     (process.env.VERCEL_PROJECT_PRODUCTION_URL

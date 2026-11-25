@@ -43,19 +43,6 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
     }
   }
 
-  async function signInWithPasskey() {
-    setPending(true)
-    setError(null)
-    const res = await authClient.signIn.passkey()
-    setPending(false)
-    if (res.error) {
-      setError('Nie udało się zalogować kluczem lub passkeyem.')
-      return
-    }
-    router.push(redirectTo)
-    router.refresh()
-  }
-
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <Field label="E-mail" htmlFor="email">
@@ -84,14 +71,6 @@ export function LoginForm({ redirectTo }: { redirectTo: string }) {
         className="rounded-sm bg-primary px-4 py-2.5 font-bold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
       >
         {pending ? 'Proszę czekać…' : 'Zaloguj się'}
-      </button>
-      <button
-        type="button"
-        onClick={signInWithPasskey}
-        disabled={pending}
-        className="rounded-sm border border-border px-4 py-2.5 font-bold hover:border-primary hover:text-primary disabled:opacity-50"
-      >
-        Zaloguj się kluczem lub passkeyem
       </button>
     </form>
   )

@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { ChevronDown, ChevronUp, CornerDownRight, Pencil, Plus } from 'lucide-react'
 import { getNavTree } from '@/lib/data'
 import type { NavItem } from '@/lib/db/schema'
-import { ADMIN_PATH } from '@/lib/admin'
+import { ADMIN_PATH, requireAdminPage } from '@/lib/admin'
 import { deleteNavItem, moveNavItem, saveNavItem } from '../../actions'
 import { AdminForm } from '@/components/admin/admin-form'
 import { DeleteButton } from '@/components/admin/delete-button'
@@ -119,6 +119,7 @@ export default async function NavAdminPage({
 }: {
   searchParams: Promise<{ edit?: string; add?: string }>
 }) {
+  await requireAdminPage()
   const { edit, add } = await searchParams
   const tree = await getNavTree()
   const parents = tree.filter((item) => !item.isButton)

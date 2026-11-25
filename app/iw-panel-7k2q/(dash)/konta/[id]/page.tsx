@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import { db } from '@/lib/db'
 import { user } from '@/lib/db/schema'
-import { ADMIN_PATH, requireAdmin } from '@/lib/admin'
+import { ADMIN_PATH, requireAdminPage } from '@/lib/admin'
 import { deleteAccount, resetAccountSecurity, saveAccount } from '../../../actions'
 import { AdminForm } from '@/components/admin/admin-form'
 import { DeleteButton } from '@/components/admin/delete-button'
@@ -10,7 +10,7 @@ import { Field, inputClass } from '@/components/admin/fields'
 import { BackLink } from '@/components/admin/list'
 
 export default async function AccountEditor({ params }: { params: Promise<{ id: string }> }) {
-  await requireAdmin()
+  const session = await requireAdminPage()
   const { id } = await params
   const isNew = id === 'nowy'
   const account = isNew
@@ -33,7 +33,7 @@ export default async function AccountEditor({ params }: { params: Promise<{ id: 
         <Field label="E-mail" htmlFor="email">
           <input id="email" name="email" type="email" defaultValue={account?.email} required maxLength={254} className={inputClass} />
         </Field>
-        <Field label="Rola" htmlFor="role" hint="Administrator może zarządzać kontami. Edytor może edytować treść CMS.">
+        <Field label="Rola" htmlFor="role" hint="Administrator: wszystko oraz konta i role, nawigacja, ustawienia strony i reset 2FA innych osób. Edytor: treści, osoby, partnerzy, blog, bolidy, projekty i obrazy.">
           <select id="role" name="role" defaultValue={account?.role ?? 'editor'} className={inputClass}>
             <option value="editor">Edytor</option>
             <option value="admin">Administrator</option>
@@ -56,15 +56,15 @@ export default async function AccountEditor({ params }: { params: Promise<{ id: 
           />
         </Field>
       </AdminForm>
-      {account && (
+      {account && account.id !== session.user.id && account.twoFactorEnabled && (
         <form action={resetAccountSecurity} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-4">
           <input type="hidden" name="id" value={account.id} />
           <div>
             <p className="text-sm font-medium">Reset zabezpieczeń</p>
-            <p className="text-xs text-muted-foreground">Usuń wszystkie passkeyi i wyłącz TOTP tego użytkownika.</p>
+            <p className="text-xs text-muted-foreground">Wyłącz uwierzytelnianie dwuskładnikowe (2FA) tego użytkownika, np. gdy zgubił telefon i kody zapasowe.</p>
           </div>
           <button type="submit" className="rounded-sm border border-destructive px-4 py-2 text-sm font-bold text-destructive hover:bg-destructive/5">
-            Resetuj 2FA i passkeyi
+            Resetuj 2FA
           </button>
         </form>
       )}

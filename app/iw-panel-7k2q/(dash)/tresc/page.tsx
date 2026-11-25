@@ -1,9 +1,12 @@
 import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import { contentAreas } from '@/lib/content-registry'
-import { ADMIN_PATH } from '@/lib/admin'
+import { ADMIN_PATH, requireCmsPage } from '@/lib/admin'
+import { canEditContentArea } from '@/lib/roles'
 
-export default function ContentAreasPage() {
+export default async function ContentAreasPage() {
+  const session = await requireCmsPage()
+  const areas = contentAreas.filter((area) => canEditContentArea(session.user.role, area.key))
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -23,7 +26,7 @@ export default function ContentAreasPage() {
         </Link>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {contentAreas.map((area) => (
+        {areas.map((area) => (
           <Link
             key={area.key}
             href={`${ADMIN_PATH}/tresc/${area.key}`}

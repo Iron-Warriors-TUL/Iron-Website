@@ -1,9 +1,10 @@
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { contentAreaByKey } from '@/lib/content-registry'
 import { getEntryKeys, getPartnerCardMap, getPeopleMap, getStoredContent } from '@/lib/content'
 import { getVehicles } from '@/lib/data'
 import type { LineReferences } from '@/components/admin/lines-editor'
-import { ADMIN_PATH } from '@/lib/admin'
+import { ADMIN_PATH, requireCmsPage } from '@/lib/admin'
+import { canEditContentArea } from '@/lib/roles'
 import { BackLink } from '@/components/admin/list'
 import { ContentForm } from '@/components/admin/content-form'
 
@@ -17,6 +18,8 @@ export default async function ContentEntryPage({
   const key = decodeURIComponent(rawKey)
   const definition = contentAreaByKey.get(area)
   if (!definition) notFound()
+  const session = await requireCmsPage()
+  if (!canEditContentArea(session.user.role, area)) redirect(`${ADMIN_PATH}?brak-uprawnien=1`)
   const keys = await getEntryKeys(area)
   if (!keys.includes(key)) notFound()
 

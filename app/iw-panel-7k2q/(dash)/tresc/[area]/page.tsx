@@ -2,7 +2,8 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { contentAreaByKey } from '@/lib/content-registry'
 import { listEntries } from '@/lib/content'
-import { ADMIN_PATH } from '@/lib/admin'
+import { ADMIN_PATH, requireCmsPage } from '@/lib/admin'
+import { canEditContentArea } from '@/lib/roles'
 import { BackLink } from '@/components/admin/list'
 import { addContentEntry } from '../../../actions'
 import { inputClass } from '@/components/admin/fields'
@@ -23,6 +24,8 @@ export default async function ContentAreaPage({
   const { error } = await searchParams
   const definition = contentAreaByKey.get(area)
   if (!definition) notFound()
+  const session = await requireCmsPage()
+  if (!canEditContentArea(session.user.role, area)) redirect(`${ADMIN_PATH}?brak-uprawnien=1`)
   if (definition.single) redirect(`${ADMIN_PATH}/tresc/${area}/main`)
 
   const isPages = area === 'pages'

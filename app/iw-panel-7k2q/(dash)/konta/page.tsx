@@ -1,12 +1,12 @@
 import { desc } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { user } from '@/lib/db/schema'
-import { requireAdmin } from '@/lib/admin'
+import { requireAdminPage } from '@/lib/admin'
 import { ADMIN_PATH } from '@/lib/admin'
 import { ListHeader, ListRow } from '@/components/admin/list'
 
 export default async function AccountsPage() {
-  await requireAdmin()
+  await requireAdminPage()
   const rows = await db.select().from(user).orderBy(desc(user.createdAt))
 
   return (
@@ -18,7 +18,7 @@ export default async function AccountsPage() {
             key={account.id}
             href={`${ADMIN_PATH}/konta/${encodeURIComponent(account.id)}`}
             title={account.name}
-            meta={`${account.email} · ${account.role === 'admin' ? 'Administrator' : 'Edytor'}`}
+            meta={`${account.email} · ${account.role === 'admin' ? 'Administrator' : 'Edytor'} · 2FA ${account.twoFactorEnabled ? 'włączone' : 'wyłączone'}`}
           />
         ))}
       </ul>
