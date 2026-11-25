@@ -109,7 +109,7 @@ export default async function HomePage() {
                   </h3>
                   <StatGrid
                     stats={vehicleStats}
-                    className="mt-5 grid-cols-2 [&>div]:items-start [&_dd]:justify-start [&_dt]:text-left"
+                    className="mt-5 grid-cols-2 lg:grid-cols-2 [&>div]:items-start [&_dd]:justify-start [&_dt]:text-left"
                   />
                 </div>
                 <Gallery

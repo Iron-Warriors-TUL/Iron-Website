@@ -91,11 +91,11 @@ export function StatGrid({ stats, className }: { stats: StatItem[]; className?: 
   return (
     <dl className={cn('grid grid-cols-1 gap-x-5 gap-y-8 text-center sm:grid-cols-2 lg:grid-cols-4', className)}>
       {stats.map((stat) => (
-        <div key={stat.label} data-reveal className="flex flex-col items-center">
-          <dt className="min-h-[48px] text-[19px] leading-[47.5px] text-[#868990]">{stat.label}</dt>
-          <dd className="flex items-baseline justify-center text-[52px] font-semibold leading-[69px] text-[#868990] md:text-[69px]">
+        <div key={stat.label} data-reveal className="flex min-w-0 flex-col items-center">
+          <dt className="flex min-h-[48px] items-end text-[17px] leading-[1.35] text-[#868990] sm:text-[19px]">{stat.label}</dt>
+          <dd className="flex flex-wrap items-baseline justify-center text-[40px] font-semibold leading-[1.2] text-[#868990] sm:text-[52px] md:text-[60px] xl:text-[69px]">
             <AnimatedNumber value={stat.value} />
-            {stat.unit && <span className="ml-1 text-[28px] font-semibold">{stat.unit}</span>}
+            {stat.unit && <span className="ml-1 text-[22px] font-semibold sm:text-[28px]">{stat.unit}</span>}
           </dd>
         </div>
       ))}
