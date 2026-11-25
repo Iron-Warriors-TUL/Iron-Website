@@ -30,8 +30,15 @@ export function AnimatedNumber({ value, duration = 2000, className }: AnimatedNu
     const format = (number: number) => number.toFixed(decimals) + suffix
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
+    let waitTimer = 0
     const start = () => {
       if (animated.current) return
+      // Pod ekranem ładowania animacji i tak nie widać: czekamy, aż zacznie znikać.
+      if (document.querySelector('.iw-splash[data-phase="shown"]')) {
+        window.clearTimeout(waitTimer)
+        waitTimer = window.setTimeout(start, 150)
+        return
+      }
       animated.current = true
       if (reduceMotion) {
         setDisplay(format(numericValue))
@@ -40,7 +47,7 @@ export function AnimatedNumber({ value, duration = 2000, className }: AnimatedNu
 
       const startedAt = performance.now()
       const tick = (now: number) => {
-        const progress = Math.min((now - startedAt) / duration, 1)
+        const progress = Math.min(Math.max((now - startedAt) / duration, 0), 1)
         const eased = 1 - Math.pow(1 - progress, 3)
         setDisplay(format(numericValue * eased))
         if (progress < 1) window.requestAnimationFrame(tick)
@@ -54,17 +61,31 @@ export function AnimatedNumber({ value, duration = 2000, className }: AnimatedNu
       return
     }
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting)) {
-          start()
-          observer.disconnect()
-        }
-      },
-      { threshold: 0.35 },
-    )
+    // Do czasu wejścia w pole widzenia pokazujemy zero, żeby nie mignęła wartość końcowa.
+    if (!reduceMotion) setDisplay(format(0))
+
+    // Start, gdy element wejdzie w widok albo zostanie „przeskoczony” szybkim przewinięciem
+    // (wtedy IntersectionObserver nic nie zgłosi, a licznik zostałby na zerze).
+    const reached = () => element.getBoundingClientRect().top < window.innerHeight * 0.9
+    const check = () => {
+      if (!reached()) return
+      start()
+      cleanup()
+    }
+    const observer = new IntersectionObserver((entries) => entries.some((e) => e.isIntersecting) && check(), {
+      threshold: 0.35,
+    })
+    const cleanup = () => {
+      observer.disconnect()
+      window.removeEventListener('scroll', check)
+    }
     observer.observe(element)
-    return () => observer.disconnect()
+    window.addEventListener('scroll', check, { passive: true })
+    check()
+    return () => {
+      cleanup()
+      window.clearTimeout(waitTimer)
+    }
   }, [value, duration])
 
   // Niewidoczna wartość końcowa wyznacza rozmiar, a animowana jest nałożona absolutnie i nie wpływa na układ.

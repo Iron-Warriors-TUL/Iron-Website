@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 
 /**
@@ -10,6 +10,17 @@ import { usePathname } from 'next/navigation'
 export function PageMotion({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const rootRef = useRef<HTMLDivElement>(null)
+
+  // Każda podstrona (także po „Wstecz”/„Dalej” i odświeżeniu) startuje od góry,
+  // żeby animacje przy przewijaniu i liczniki odpalały się od nowa.
+  // Wyjątek: adres z kotwicą (#sekcja) przewija do wskazanego miejsca.
+  useEffect(() => {
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual'
+  }, [])
+  useLayoutEffect(() => {
+    if (window.location.hash) return
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [pathname])
 
   useEffect(() => {
     const root = rootRef.current
