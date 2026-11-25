@@ -30,8 +30,13 @@ services:
       ADMIN_NAME: ${ADMIN_NAME:-Administrator}
       ADMIN_EMAIL: ${ADMIN_EMAIL:-}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      # Za reverse proxy: zob. MAINTENANCE.md (limit logowania wg adresu klienta).
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+      AUTH_IP_HEADER: ${AUTH_IP_HEADER:-}
     ports:
-      - "3000:3000"
+      # Tylko localhost: ruch z internetu idzie przez reverse proxy z HTTPS, nigdy prosto do Node.
+      # Bezpośredni dostęp pozwalałby podrobić X-Forwarded-For i obejść limit logowania.
+      - "127.0.0.1:3000:3000"
     volumes:
       - iw-app-uploads:/app/public/uploads
 
