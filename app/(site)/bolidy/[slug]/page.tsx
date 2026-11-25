@@ -1,3 +1,4 @@
+import { AnimatedNumber } from '@/components/site/animated-number'
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { getVehicle } from '@/lib/data'
@@ -118,7 +119,7 @@ export default async function VehiclePage({ params }: Props) {
               {v.bestResult && (
                 <div className="flex flex-row-reverse items-center justify-center gap-2.5">
                   <span className="text-[20px] text-[#868990]">Najlepszy wynik</span>
-                  <span className="text-[40px] font-semibold text-[#868990]">{v.bestResult}</span>
+                  <span className="text-[40px] font-semibold text-[#868990]"><AnimatedNumber value={v.bestResult} /></span>
                 </div>
               )}
             </div>
@@ -126,7 +127,7 @@ export default async function VehiclePage({ params }: Props) {
             {v.bestResult && (
               <div className="flex flex-row-reverse items-center justify-center gap-2.5 min-[768px]:hidden">
                 <span className="text-[20px] text-[#868990]">Najlepszy wynik</span>
-                <span className="text-[40px] font-semibold text-[#868990]">{v.bestResult}</span>
+                <span className="text-[40px] font-semibold text-[#868990]"><AnimatedNumber value={v.bestResult} /></span>
               </div>
             )}
 
