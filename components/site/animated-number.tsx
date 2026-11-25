@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { cn } from '@/lib/utils'
 
 type AnimatedNumberProps = {
   value: string
@@ -66,9 +67,16 @@ export function AnimatedNumber({ value, duration = 2000, className }: AnimatedNu
     return () => observer.disconnect()
   }, [value, duration])
 
+  // Niewidoczna wartość końcowa wyznacza rozmiar, a animowana jest nałożona absolutnie i nie wpływa na układ.
+  // Dzięki temu zmieniająca się liczba i szerokość cyfr nie przesuwa treści przy przewijaniu.
   return (
-    <span ref={ref} className={className} aria-label={value}>
-      {display}
+    <span ref={ref} className={cn('relative inline-block whitespace-nowrap tabular-nums', className)} aria-label={value}>
+      <span aria-hidden="true" className="invisible">
+        {value}
+      </span>
+      <span aria-hidden="true" className="absolute right-0 top-0">
+        {display}
+      </span>
     </span>
   )
 }
