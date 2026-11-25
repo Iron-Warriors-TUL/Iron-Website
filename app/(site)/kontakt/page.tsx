@@ -15,7 +15,7 @@ export default async function ContactPage() {
       <div className="absolute inset-0 -z-10 bg-white/92" />
 
       <div className="mx-auto w-full max-w-[1140px] px-[10px] pb-[60px] min-[1200px]:pb-[80px]">
-        <h1 className="pt-5 text-center text-[42px] font-semibold leading-[59px] text-black min-[1200px]:text-[59px]">
+        <h1 className="pt-10 text-center text-[42px] min-[768px]:pt-14 font-semibold leading-[59px] text-black min-[1200px]:text-[59px]">
           {value('title')}
         </h1>
 

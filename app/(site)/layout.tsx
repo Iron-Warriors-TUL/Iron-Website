@@ -10,7 +10,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   return (
     <>
       <Navbar />
-      <main className="pt-[100px]">
+      <main className="pt-[104px] min-[768px]:pt-[122px] min-[1200px]:pt-[146px]">
         <PageMotion>{children}</PageMotion>
       </main>
       <Footer />
