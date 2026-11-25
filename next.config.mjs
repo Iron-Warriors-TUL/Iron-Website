@@ -36,6 +36,9 @@ const nextConfig = {
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
+      // Osadzone filmy YouTube i mapa Google. Bez frame-src przeglądarka
+      // stosuje default-src 'self' i blokuje te ramki (pusta ikona zamiast mediów).
+      'frame-src https://www.youtube.com https://www.youtube-nocookie.com https://maps.google.com https://www.google.com',
       `connect-src 'self' https:${isDev ? ' ws: wss:' : ''}`,
       "frame-ancestors 'self'",
       "base-uri 'self'",
