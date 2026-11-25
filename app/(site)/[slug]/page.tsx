@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
+import { BlockRenderer } from '@/components/site/block-renderer'
 import { Paragraphs } from '@/components/site/section'
 import { FillImage } from '@/components/site/smart-image'
+import { blockStr, parseBlocks } from '@/lib/blocks'
 import { getCustomPage } from '@/lib/content'
 
 type Props = { params: Promise<{ slug: string }> }
@@ -26,6 +28,19 @@ export default async function CustomPage({ params }: Props) {
   const lead = String(page.lead ?? '')
   const content = String(page.content ?? '')
   const image = String(page.image ?? '')
+
+  const blocks = parseBlocks(page.blocks)
+  if (blocks.length > 0) {
+    const hasH1 = blocks.some(
+      (block) => block.type === 'hero' || (block.type === 'heading' && blockStr(block, 'level') === 'h1'),
+    )
+    return (
+      <div className="flex flex-col">
+        {!hasH1 && <h1 className="sr-only">{title || slug}</h1>}
+        <BlockRenderer blocks={blocks} />
+      </div>
+    )
+  }
 
   return (
     <article className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-16 md:px-6">

@@ -7,6 +7,9 @@ import { deleteProject, saveProject } from '../../../actions'
 import { AdminForm } from '@/components/admin/admin-form'
 import { DeleteButton } from '@/components/admin/delete-button'
 import { Field, inputClass } from '@/components/admin/fields'
+import { BlockEditor } from '@/components/admin/block-editor'
+import { ImageListField } from '@/components/admin/image-list-field'
+import { RichTextField } from '@/components/admin/rich-text-field'
 import { BackLink } from '@/components/admin/list'
 
 export default async function ProjectEditor({ params }: { params: Promise<{ id: string }> }) {
@@ -55,14 +58,15 @@ export default async function ProjectEditor({ params }: { params: Promise<{ id: 
           <input id="heading" name="heading" defaultValue={p?.heading} maxLength={500} className={inputClass} />
         </Field>
         <Field label="Opis" htmlFor="description">
-          <textarea id="description" name="description" defaultValue={p?.description} rows={6} maxLength={10000} className={inputClass} />
+          <RichTextField id="description" name="description" defaultValue={p?.description} rows={6} maxLength={10000} />
         </Field>
-        <Field label="Obrazy (jedna ścieżka na linię)" htmlFor="imageUrls">
-          <textarea id="imageUrls" name="imageUrls" defaultValue={p?.imageUrls ?? ''} rows={3} maxLength={4000} className={inputClass} />
-        </Field>
+        <ImageListField name="imageUrls" label="Obrazy" defaultValue={p?.imageUrls} />
         <Field label="Kolejność" htmlFor="sortOrder">
           <input id="sortOrder" name="sortOrder" type="number" defaultValue={p?.sortOrder ?? 0} className={`${inputClass} max-w-32`} />
         </Field>
+        <section className="rounded-md border border-border bg-card p-4">
+          <BlockEditor initial={p?.blocks} />
+        </section>
       </AdminForm>
     </div>
   )

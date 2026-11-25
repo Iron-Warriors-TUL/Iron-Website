@@ -5,8 +5,10 @@ import { getVehicle } from '@/lib/data'
 import { getContent } from '@/lib/content'
 import type { Achievement } from '@/lib/db/schema'
 import { CountryFlag } from '@/components/site/country-flag'
+import { BlockRenderer } from '@/components/site/block-renderer'
 import { Gallery, JoinCta, Paragraphs, StatGrid } from '@/components/site/section'
 import { FixedImage } from '@/components/site/smart-image'
+import { blockStr, parseBlocks } from '@/lib/blocks'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -49,6 +51,20 @@ function AchievementCard({ achievement }: { achievement: Achievement }) {
 export default async function VehiclePage({ params }: Props) {
   const v = await getVehicle((await params).slug)
   if (!v) notFound()
+
+  const blocks = parseBlocks(v.blocks)
+  if (blocks.length > 0) {
+    const hasH1 = blocks.some(
+      (block) => block.type === 'hero' || (block.type === 'heading' && blockStr(block, 'level') === 'h1'),
+    )
+    return (
+      <div className="flex flex-col">
+        {!hasH1 && <h1 className="sr-only">{v.name}</h1>}
+        <BlockRenderer blocks={blocks} />
+      </div>
+    )
+  }
+
   const layout = await getContent('vehicle-layout', v.slug)
   const gallery = (Array.isArray(layout.gallery) ? (layout.gallery as unknown[][]) : [])
     .map((row) => String(row[0] ?? ''))

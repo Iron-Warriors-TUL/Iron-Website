@@ -1,8 +1,10 @@
 import { getVehicles } from '@/lib/data'
 import { getContent } from '@/lib/content'
+import { BlockRenderer } from '@/components/site/block-renderer'
 import { Gallery, JoinCta, OrangeLink, Paragraphs, StatGrid, type StatItem } from '@/components/site/section'
 import { FillImage } from '@/components/site/smart-image'
 import { YouTubeBackdrop, YouTubeEmbed } from '@/components/site/youtube-video'
+import { blockStr, parseBlocks } from '@/lib/blocks'
 
 type Lines = unknown[][]
 
@@ -11,6 +13,20 @@ const text = (value: unknown) => (typeof value === 'string' ? value : '')
 
 export default async function HomePage() {
   const [home, vehicles] = await Promise.all([getContent('home'), getVehicles()])
+
+  const blocks = parseBlocks(home.blocks)
+  if (blocks.length > 0) {
+    const hasH1 = blocks.some(
+      (block) => block.type === 'hero' || (block.type === 'heading' && blockStr(block, 'level') === 'h1'),
+    )
+    return (
+      <div className="flex flex-col">
+        {!hasH1 && <h1 className="sr-only">{text(home.heroTitle) || 'Iron Warriors Team'}</h1>}
+        <BlockRenderer blocks={blocks} />
+      </div>
+    )
+  }
+
   const featuredOrder = lines(home.featured).map((row) => String(row[0] ?? ''))
   const featured = featuredOrder
     .map((slug) => vehicles.find((vehicle) => vehicle.slug === slug))

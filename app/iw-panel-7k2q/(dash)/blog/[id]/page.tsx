@@ -7,7 +7,9 @@ import { deletePost, savePost } from '../../../actions'
 import { AdminForm } from '@/components/admin/admin-form'
 import { DeleteButton } from '@/components/admin/delete-button'
 import { Checkbox, Field, inputClass } from '@/components/admin/fields'
+import { BlockEditor } from '@/components/admin/block-editor'
 import { ImageField } from '@/components/admin/image-field'
+import { RichTextField } from '@/components/admin/rich-text-field'
 import { BackLink } from '@/components/admin/list'
 
 export default async function PostEditor({ params }: { params: Promise<{ id: string }> }) {
@@ -48,9 +50,12 @@ export default async function PostEditor({ params }: { params: Promise<{ id: str
         <Field label="Zajawka" htmlFor="excerpt">
           <textarea id="excerpt" name="excerpt" defaultValue={post?.excerpt} rows={2} maxLength={500} className={inputClass} />
         </Field>
-        <Field label="Treść" htmlFor="content" hint="Akapity oddzielaj pustą linią.">
-          <textarea id="content" name="content" defaultValue={post?.content} rows={14} maxLength={50000} className={inputClass} />
+        <Field label="Treść" htmlFor="content">
+          <RichTextField id="content" name="content" defaultValue={post?.content} rows={14} maxLength={50000} />
         </Field>
+        <section className="rounded-md border border-border bg-card p-4">
+          <BlockEditor initial={post?.blocks} />
+        </section>
         <Checkbox name="published" label="Opublikowany" defaultChecked={post?.published ?? true} />
       </AdminForm>
     </div>

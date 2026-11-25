@@ -2,7 +2,9 @@ import { notFound } from 'next/navigation'
 import type { ReactNode } from 'react'
 import type { Metadata } from 'next'
 import { getProjects } from '@/lib/data'
+import { BlockRenderer } from '@/components/site/block-renderer'
 import { JoinCta } from '@/components/site/section'
+import { parseBlocks } from '@/lib/blocks'
 import { FillImage, FixedImage } from '@/components/site/smart-image'
 import { getContent } from '@/lib/content'
 import type { Project } from '@/lib/db/schema'
@@ -98,7 +100,9 @@ function ProjectTable({ project, fields }: { project: Project; fields: Field[] }
     <table className="w-full border-collapse text-[15px] leading-[25.2px] text-black">
       <tbody>
         {fields.map(({ label, key, bold }) => {
-          const value = project[key]
+          const raw = project[key]
+          if (typeof raw !== 'string' && typeof raw !== 'number') return null
+          const value = String(raw)
           if (!value) return null
           return (
             <tr key={label}>
@@ -222,19 +226,26 @@ export default async function ProjectCategoryPage({ params }: Props) {
           </h2>
 
           <div className="mt-[50px] flex flex-col">
-            {projects.map((project, index) => (
-              <div key={project.id}>
-                {index > 0 && <div className="my-[15px] h-[1.5px] w-full bg-[#999999]" />}
-                <article data-reveal className="flex flex-col gap-8">
-                  {project.imageUrls && <EntryImages urls={project.imageUrls} alt={project.title} />}
-                  <div className="flex flex-col gap-5">
-                    {project.heading && <EntryHeading text={project.heading} />}
-                    <ProjectTable project={project} fields={config.fields} />
-                    <Description text={project.description} />
-                  </div>
-                </article>
-              </div>
-            ))}
+            {projects.map((project, index) => {
+              const blocks = parseBlocks(project.blocks)
+              return (
+                <div key={project.id}>
+                  {index > 0 && <div className="my-[15px] h-[1.5px] w-full bg-[#999999]" />}
+                  {blocks.length > 0 ? (
+                    <BlockRenderer blocks={blocks} />
+                  ) : (
+                    <article data-reveal className="flex flex-col gap-8">
+                      {project.imageUrls && <EntryImages urls={project.imageUrls} alt={project.title} />}
+                      <div className="flex flex-col gap-5">
+                        {project.heading && <EntryHeading text={project.heading} />}
+                        <ProjectTable project={project} fields={config.fields} />
+                        <Description text={project.description} />
+                      </div>
+                    </article>
+                  )}
+                </div>
+              )
+            })}
           </div>
         </div>
       </section>

@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { Plus, Search, Trash2, UserRound } from 'lucide-react'
 import { FixedImage } from '@/components/site/smart-image'
 import { inputClass } from './fields'
+import { MediaPicker } from './media-picker'
 
 type Person = { id: string; name: string; photo: string; portrait: boolean }
 
@@ -147,15 +148,21 @@ export function PeopleEditor({ initial }: { initial: string[][] }) {
                   />
                 </label>
 
-                <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                  Ścieżka zdjęcia
+                <div className="flex flex-col gap-1 text-xs text-muted-foreground">
+                  Zdjęcie
+                  <MediaPicker
+                    value={person.photo}
+                    onChange={(url) => update(person.id, { photo: url })}
+                    label="Wybierz zdjęcie"
+                  />
                   <input
                     value={person.photo}
                     onChange={(event) => update(person.id, { photo: cleanCell(event.target.value).trim() })}
                     placeholder="/images/…"
+                    aria-label="Ścieżka zdjęcia"
                     className={`${inputClass} font-mono text-xs`}
                   />
-                </label>
+                </div>
 
                 <label className="flex items-center gap-2 text-xs text-muted-foreground">
                   <input

@@ -7,7 +7,9 @@ import { deleteVehicle, saveVehicle } from '../../../actions'
 import { AdminForm } from '@/components/admin/admin-form'
 import { DeleteButton } from '@/components/admin/delete-button'
 import { Checkbox, Field, inputClass } from '@/components/admin/fields'
+import { BlockEditor } from '@/components/admin/block-editor'
 import { ImageField } from '@/components/admin/image-field'
+import { RichTextField } from '@/components/admin/rich-text-field'
 import { BackLink } from '@/components/admin/list'
 
 const lines = (rows: Record<string, string>[], keys: string[]) => rows.map((r) => keys.map((k) => r[k] ?? '').join(' | ')).join('\n')
@@ -47,8 +49,8 @@ export default async function VehicleEditor({ params }: { params: Promise<{ id: 
           <input id="bestResult" name="bestResult" defaultValue={v?.bestResult ?? ''} maxLength={200} className={inputClass} />
         </Field>
         <ImageField name="imageUrl" label="Zdjęcie" defaultValue={v?.imageUrl} />
-        <Field label="Opis" htmlFor="description" hint="Akapity oddzielaj pustą linią.">
-          <textarea id="description" name="description" defaultValue={v?.description} rows={8} className={inputClass} />
+        <Field label="Opis" htmlFor="description">
+          <RichTextField id="description" name="description" defaultValue={v?.description} rows={8} />
         </Field>
         <Field label="Cel rozwoju" htmlFor="goal">
           <input id="goal" name="goal" defaultValue={v?.goal} maxLength={1000} className={inputClass} />
@@ -63,6 +65,9 @@ export default async function VehicleEditor({ params }: { params: Promise<{ id: 
           <textarea id="achievements" name="achievements" defaultValue={v ? lines(v.achievements, ['title', 'location', 'result', 'countryCode']) : ''} rows={6} className={`${inputClass} font-mono`} />
         </Field>
         <Checkbox name="featured" label="Pokaż na stronie głównej" defaultChecked={v?.featured} />
+        <section className="rounded-md border border-border bg-card p-4">
+          <BlockEditor initial={v?.blocks} />
+        </section>
       </AdminForm>
     </div>
   )

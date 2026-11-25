@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import type { Field } from './content-registry'
+import { parseBlocks } from './blocks'
 import { isHttpsUrl, isSafePath } from './safe-url'
 
 /*
@@ -177,6 +178,7 @@ export class ContentFieldError extends Error {}
 
 export function parseFieldValue(field: Field, raw: FormData): unknown {
   if (field.type === 'checkbox') return bool(raw, field.name)
+  if (field.type === 'blocks') return parseBlocks(s(raw, field.name))
   const value = s(raw, field.name)
   if (field.type === 'lines') {
     return value

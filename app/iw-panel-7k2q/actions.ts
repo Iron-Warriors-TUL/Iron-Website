@@ -10,6 +10,7 @@ import { put } from '@vercel/blob'
 import { db, pool } from '@/lib/db'
 import { navItems, posts, projects, siteContent, user, vehicles } from '@/lib/db/schema'
 import { contentAreaByKey } from '@/lib/content-registry'
+import { parseBlocks } from '@/lib/blocks'
 import { ADMIN_PATH, requireAdmin, requireCms } from '@/lib/admin'
 import { hashPassword } from 'better-auth/crypto'
 import { collectDescendantIds, validateNavParent } from '@/lib/navigation'
@@ -123,15 +124,18 @@ export async function deleteNavItem(fd: FormData) {
 export async function savePost(_: FormState, fd: FormData): Promise<FormState> {
   await requireCms()
   try {
-    const data = postSchema.parse({
-      slug: s(fd, 'slug'),
-      title: s(fd, 'title'),
-      excerpt: s(fd, 'excerpt'),
-      content: s(fd, 'content'),
-      coverImage: s(fd, 'coverImage'),
-      published: bool(fd, 'published'),
-      publishedAt: s(fd, 'publishedAt') || new Date().toISOString(),
-    })
+    const data = {
+      ...postSchema.parse({
+        slug: s(fd, 'slug'),
+        title: s(fd, 'title'),
+        excerpt: s(fd, 'excerpt'),
+        content: s(fd, 'content'),
+        coverImage: s(fd, 'coverImage'),
+        published: bool(fd, 'published'),
+        publishedAt: s(fd, 'publishedAt') || new Date().toISOString(),
+      }),
+      blocks: parseBlocks(s(fd, 'blocks')),
+    }
     const rawId = s(fd, 'id')
     if (rawId) {
       await db.update(posts).set({ ...data, updatedAt: new Date() }).where(eq(posts.id, id.parse(rawId)))
@@ -170,6 +174,7 @@ export async function saveVehicle(_: FormState, fd: FormData): Promise<FormState
         sortOrder: s(fd, 'sortOrder') || '0',
       }),
       ...parseVehicleLists(fd),
+      blocks: parseBlocks(s(fd, 'blocks')),
     }
     const rawId = s(fd, 'id')
     if (rawId) {
@@ -196,19 +201,22 @@ export async function deleteVehicle(fd: FormData) {
 export async function saveProject(_: FormState, fd: FormData): Promise<FormState> {
   await requireCms()
   try {
-    const data = projectSchema.parse({
-      category: s(fd, 'category'),
-      title: s(fd, 'title'),
-      program: s(fd, 'program'),
-      funding: s(fd, 'funding'),
-      ownContribution: s(fd, 'ownContribution'),
-      totalValue: s(fd, 'totalValue'),
-      period: s(fd, 'period'),
-      description: s(fd, 'description'),
-      heading: s(fd, 'heading'),
-      imageUrls: s(fd, 'imageUrls'),
-      sortOrder: s(fd, 'sortOrder') || '0',
-    })
+    const data = {
+      ...projectSchema.parse({
+        category: s(fd, 'category'),
+        title: s(fd, 'title'),
+        program: s(fd, 'program'),
+        funding: s(fd, 'funding'),
+        ownContribution: s(fd, 'ownContribution'),
+        totalValue: s(fd, 'totalValue'),
+        period: s(fd, 'period'),
+        description: s(fd, 'description'),
+        heading: s(fd, 'heading'),
+        imageUrls: s(fd, 'imageUrls'),
+        sortOrder: s(fd, 'sortOrder') || '0',
+      }),
+      blocks: parseBlocks(s(fd, 'blocks')),
+    }
     const rawId = s(fd, 'id')
     if (rawId) {
       await db.update(projects).set({ ...data, updatedAt: new Date() }).where(eq(projects.id, id.parse(rawId)))

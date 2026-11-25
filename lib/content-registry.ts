@@ -33,6 +33,7 @@ export type Field =
   | { name: string; label: string; type: 'checkbox'; hint?: string }
   | { name: string; label: string; type: 'select'; options: string[]; hint?: string }
   | { name: string; label: string; type: 'lines'; columns: string[]; hint?: string }
+  | { name: string; label: string; type: 'blocks'; hint?: string }
 
 export type ContentArea = {
   key: string
@@ -239,6 +240,7 @@ export const contentAreas: ContentArea[] = [
     single: true,
     keys: ['main'],
     fields: [
+      { name: 'blocks', label: 'Bloki strony', type: 'blocks', hint: 'Jeśli dodasz bloki, zastąpią one klasyczny układ strony głównej.' },
       { name: 'heroVideoId', label: 'ID filmu tła', type: 'text', hint: 'Id z YouTube (bez parametrów).' },
       { name: 'heroStart', label: 'Początek odtwarzania (s)', type: 'text' },
       { name: 'heroEnd', label: 'Koniec fragmentu (s)', type: 'text' },
@@ -271,7 +273,7 @@ export const contentAreas: ContentArea[] = [
         hint: 'Slugi z panelu „Bolidy”, np. eco-arrow-3.',
       },
     ],
-    defaults: () => homeDefaults,
+    defaults: () => ({ blocks: [], ...homeDefaults }),
   },
   {
     key: 'home-vehicles',
@@ -407,6 +409,7 @@ export const contentAreas: ContentArea[] = [
     single: true,
     keys: ['main'],
     fields: [
+      { name: 'blocks', label: 'Bloki strony', type: 'blocks', hint: 'Jeśli dodasz bloki, zastąpią one klasyczny układ strony.' },
       { name: 'title', label: 'Nagłówek', type: 'text' },
       { name: 'image', label: 'Tło nagłówka', type: 'image' },
       { name: 'text', label: 'Opis', type: 'textarea', rows: 10 },
@@ -414,7 +417,7 @@ export const contentAreas: ContentArea[] = [
       { name: 'contactLabel', label: 'Etykieta przycisku kontaktu', type: 'text' },
       { name: 'contactHref', label: 'Link kontaktu', type: 'text' },
     ],
-    defaults: () => becomePartnerDefaults,
+    defaults: () => ({ blocks: [], ...becomePartnerDefaults }),
   },
   {
     key: 'cta',
@@ -442,6 +445,7 @@ export const contentAreas: ContentArea[] = [
     single: true,
     keys: ['main'],
     fields: [
+      { name: 'blocks', label: 'Bloki strony', type: 'blocks', hint: 'Jeśli dodasz bloki, zastąpią one klasyczny układ strony.' },
       { name: 'title', label: 'Nagłówek', type: 'text' },
       { name: 'background', label: 'Tło sekcji', type: 'image' },
       { name: 'photo', label: 'Zdjęcie osoby kontaktowej', type: 'image' },
@@ -452,7 +456,7 @@ export const contentAreas: ContentArea[] = [
       { name: 'sponsorText', label: 'Tekst przy ofercie sponsorskiej', type: 'textarea', rows: 4 },
       { name: 'sponsorButtonLabel', label: 'Etykieta przycisku oferty', type: 'text' },
     ],
-    defaults: () => contactDefaults,
+    defaults: () => ({ blocks: [], ...contactDefaults }),
   },
   {
     key: 'recruitment',
@@ -461,6 +465,7 @@ export const contentAreas: ContentArea[] = [
     single: true,
     keys: ['main'],
     fields: [
+      { name: 'blocks', label: 'Bloki strony', type: 'blocks', hint: 'Jeśli dodasz bloki, zastąpią one klasyczny układ strony.' },
       { name: 'formUrl', label: 'Link do formularza', type: 'url' },
       { name: 'formLabel', label: 'Etykieta przycisku', type: 'text' },
       { name: 'heading', label: 'Nagłówek', type: 'text' },
@@ -476,7 +481,7 @@ export const contentAreas: ContentArea[] = [
       { name: 'expectationsImageAlt', label: 'Opis zdjęcia oczekiwań', type: 'text' },
       { name: 'heroImage', label: 'Tło nagłówka', type: 'image' },
     ],
-    defaults: () => recruitmentDefaults,
+    defaults: () => ({ blocks: [], ...recruitmentDefaults }),
   },
   {
     key: 'recruitment-departments',
@@ -504,6 +509,7 @@ export const contentAreas: ContentArea[] = [
     single: true,
     keys: ['main'],
     fields: [
+      { name: 'blocks', label: 'Bloki strony', type: 'blocks', hint: 'Jeśli dodasz bloki, zastąpią one klasyczny układ listy bolidów.' },
       { name: 'heading', label: 'Nagłówek', type: 'text' },
       { name: 'background', label: 'Tło nagłówka', type: 'image' },
       {
@@ -515,7 +521,7 @@ export const contentAreas: ContentArea[] = [
       },
       { name: 'moreLabel', label: 'Etykieta przycisku „Zobacz więcej”', type: 'text' },
     ],
-    defaults: () => vehiclesPageDefaults,
+    defaults: () => ({ blocks: [], ...vehiclesPageDefaults }),
   },
   {
     key: 'vehicle-layout',
@@ -564,6 +570,7 @@ export const contentAreas: ContentArea[] = [
     keys: [],
     fields: [
       { name: 'title', label: 'Tytuł strony', type: 'text' },
+      { name: 'blocks', label: 'Bloki strony', type: 'blocks', hint: 'Układaj sekcje strony od góry do dołu.' },
       { name: 'lead', label: 'Krótki wstęp (lead)', type: 'textarea', rows: 3 },
       { name: 'content', label: 'Treść strony', type: 'textarea', rows: 16, hint: 'Akapity oddzielaj pustą linią.' },
       { name: 'image', label: 'Obraz nagłówka', type: 'image' },
@@ -573,6 +580,7 @@ export const contentAreas: ContentArea[] = [
     ],
     defaults: () => ({
       title: '',
+      blocks: [],
       lead: '',
       content: '',
       image: '',

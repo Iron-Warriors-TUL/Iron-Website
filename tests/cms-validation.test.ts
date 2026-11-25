@@ -199,6 +199,16 @@ describe('parseFieldValue', () => {
     assert.equal(parseFieldValue(field, form({ link: '' })), '')
     assert.throws(() => parseFieldValue(field, form({ link: 'javascript:alert(1)' })), ContentFieldError)
   })
+
+  it('parsuje bloki z formularza i odrzuca nieznane typy', () => {
+    const field: Field = { name: 'blocks', label: '', type: 'blocks' }
+    const raw = JSON.stringify([{ id: 'a', type: 'text', text: 'Cześć' }, { type: 'evil' }])
+    const result = parseFieldValue(field, form({ blocks: raw })) as { type: string; text: string }[]
+    assert.equal(result.length, 1)
+    assert.equal(result[0].type, 'text')
+    assert.equal(result[0].text, 'Cześć')
+    assert.deepEqual(parseFieldValue(field, form({ blocks: '' })), [])
+  })
 })
 
 describe('parseAccountInput', () => {

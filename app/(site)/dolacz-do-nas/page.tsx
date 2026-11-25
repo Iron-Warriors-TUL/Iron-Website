@@ -1,7 +1,9 @@
 import type { Metadata } from 'next'
+import { BlockRenderer } from '@/components/site/block-renderer'
 import { Gallery, JoinCta, OrangeLink, Paragraphs } from '@/components/site/section'
 import { FillImage } from '@/components/site/smart-image'
 import { getContent, getEntryKeys } from '@/lib/content'
+import { blockStr, parseBlocks } from '@/lib/blocks'
 
 export const metadata: Metadata = { title: 'Dołącz do nas' }
 
@@ -27,6 +29,19 @@ export default async function JoinPage() {
   const value = (name: string) => String(recruitment[name] ?? '')
   const items = (name: string): string[] =>
     (Array.isArray(recruitment[name]) ? (recruitment[name] as unknown[][]) : []).map((row) => String(row[0] ?? ''))
+
+  const blocks = parseBlocks(recruitment.blocks)
+  if (blocks.length > 0) {
+    const hasH1 = blocks.some(
+      (block) => block.type === 'hero' || (block.type === 'heading' && blockStr(block, 'level') === 'h1'),
+    )
+    return (
+      <div className="flex flex-col">
+        {!hasH1 && <h1 className="sr-only">{value('heading') || 'Dołącz do nas'}</h1>}
+        <BlockRenderer blocks={blocks} />
+      </div>
+    )
+  }
 
   return (
     <>

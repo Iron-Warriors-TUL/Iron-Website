@@ -1,4 +1,5 @@
 import { boolean, integer, jsonb, pgTable, serial, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core'
+import type { Block } from '@/lib/blocks'
 
 export const user = pgTable('user', {
   id: text('id').primaryKey(),
@@ -33,6 +34,7 @@ export const posts = pgTable('posts', {
   excerpt: text('excerpt').notNull().default(''),
   content: text('content').notNull().default(''),
   coverImage: text('cover_image'),
+  blocks: jsonb('blocks').$type<Block[]>().notNull().default([]),
   published: boolean('published').notNull().default(true),
   publishedAt: timestamp('published_at').notNull().defaultNow(),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -50,6 +52,7 @@ export const vehicles = pgTable('vehicles', {
   specs: jsonb('specs').$type<Spec[]>().notNull().default([]),
   stats: jsonb('stats').$type<Stat[]>().notNull().default([]),
   achievements: jsonb('achievements').$type<Achievement[]>().notNull().default([]),
+  blocks: jsonb('blocks').$type<Block[]>().notNull().default([]),
   bestResult: text('best_result'),
   featured: boolean('featured').notNull().default(false),
   sortOrder: integer('sort_order').notNull().default(0),
@@ -69,6 +72,7 @@ export const projects = pgTable('projects', {
   description: text('description').notNull().default(''),
   heading: text('heading').notNull().default(''),
   imageUrls: text('image_urls').notNull().default(''),
+  blocks: jsonb('blocks').$type<Block[]>().notNull().default([]),
   sortOrder: integer('sort_order').notNull().default(0),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),

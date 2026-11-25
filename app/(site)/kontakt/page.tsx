@@ -1,13 +1,28 @@
 import type { Metadata } from 'next'
 import { MapEmbed } from '@/components/site/map-embed'
+import { BlockRenderer } from '@/components/site/block-renderer'
 import { FillImage, FixedImage } from '@/components/site/smart-image'
 import { getContent } from '@/lib/content'
+import { blockStr, parseBlocks } from '@/lib/blocks'
 
 export const metadata: Metadata = { title: 'Kontakt' }
 
 export default async function ContactPage() {
   const [contact, settings] = await Promise.all([getContent('contact'), getContent('settings')])
   const value = (name: string) => String(contact[name] ?? '')
+
+  const blocks = parseBlocks(contact.blocks)
+  if (blocks.length > 0) {
+    const hasH1 = blocks.some(
+      (block) => block.type === 'hero' || (block.type === 'heading' && blockStr(block, 'level') === 'h1'),
+    )
+    return (
+      <div className="flex flex-col">
+        {!hasH1 && <h1 className="sr-only">{value('title') || 'Kontakt'}</h1>}
+        <BlockRenderer blocks={blocks} />
+      </div>
+    )
+  }
 
   return (
     <section className="relative isolate overflow-hidden">

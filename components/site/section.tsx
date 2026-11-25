@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
+import { parseInlineContent } from '@/lib/inline-content'
 import { AnimatedNumber } from './animated-number'
 import { Carousel, type CarouselProps } from './carousel'
 import { FillImage, FixedImage } from './smart-image'
@@ -22,14 +23,19 @@ export function PageHeader({ title, subtitle, image }: { title: string; subtitle
 export function Paragraphs({ text, className }: { text: string; className?: string }) {
   return (
     <div className={cn('flex flex-col gap-5 text-left sm:text-justify text-[15px] leading-[25.2px] text-black', className)}>
-      {text
-        .split(/\n{2,}/)
-        .filter(Boolean)
-        .map((p, i) => (
+      {parseInlineContent(text).map((block, i) =>
+        block.type === 'image' ? (
+          <figure key={i} data-reveal className="overflow-hidden rounded-md bg-secondary">
+            <div className="relative aspect-video w-full">
+              <FillImage src={block.src} alt={block.alt} sizes="100vw" />
+            </div>
+          </figure>
+        ) : (
           <p key={i} data-reveal className="text-pretty">
-            {p}
+            {block.text}
           </p>
-        ))}
+        ),
+      )}
     </div>
   )
 }

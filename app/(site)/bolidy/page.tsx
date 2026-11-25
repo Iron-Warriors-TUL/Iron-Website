@@ -1,8 +1,10 @@
 import type { Metadata } from 'next'
 import { getVehicles } from '@/lib/data'
 import { getContent } from '@/lib/content'
+import { BlockRenderer } from '@/components/site/block-renderer'
 import { Gallery, JoinCta, OrangeLink, Paragraphs } from '@/components/site/section'
 import { FillImage } from '@/components/site/smart-image'
+import { blockStr, parseBlocks } from '@/lib/blocks'
 
 export const metadata: Metadata = { title: 'Bolidy' }
 
@@ -20,6 +22,19 @@ export default async function VehiclesPage() {
   for (const [slug, src] of rows('galleries')) {
     const key = String(slug ?? '')
     galleries.set(key, [...(galleries.get(key) ?? []), String(src ?? '')])
+  }
+
+  const blocks = parseBlocks(content.blocks)
+  if (blocks.length > 0) {
+    const hasH1 = blocks.some(
+      (block) => block.type === 'hero' || (block.type === 'heading' && blockStr(block, 'level') === 'h1'),
+    )
+    return (
+      <div className="flex flex-col">
+        {!hasH1 && <h1 className="sr-only">{value('heading') || 'Bolidy'}</h1>}
+        <BlockRenderer blocks={blocks} />
+      </div>
+    )
   }
 
   return (
