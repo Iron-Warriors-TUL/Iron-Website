@@ -35,8 +35,10 @@ Panel admina: http://localhost:3000/iw-panel-7k2q/login
 Konto administratora powstaje z `ADMIN_EMAIL`, `ADMIN_PASSWORD` (min. 12 znaków) i
 opcjonalnie `ADMIN_NAME` z pliku `.env` obok `docker-compose.yml` (nie `.env.local`).
 Bootstrap jest idempotentny, więc po pierwszym uruchomieniu możesz usunąć `ADMIN_PASSWORD`
-z `.env` — konto zostanie w bazie. Rejestracja w przeglądarce jest zablokowana; kolejne
-konta tworzy się z wnętrza kontenera:
+z `.env` — konto zostanie w bazie. Rejestracja w przeglądarce jest zablokowana. Kolejne
+konta najwygodniej dodawać w panelu (**Administracja → Konta i role**) — opis ról,
+resetu haseł i 2FA: [KONTA-I-ROLE.md](KONTA-I-ROLE.md). CLI pozostaje do bootstrapu
+i automatyzacji:
 
 ```bash
 docker compose exec -T app node scripts/create-account.mjs \
@@ -50,6 +52,9 @@ Panel ma trzy główne sekcje edycji:
 - **Treść strony** — 17 obszarów (strona główna, nagłówek, stopka, CTA, bolidy, rekrutacja, kontakt, zostań partnerem, ustawienia itd.). Wybierasz obszar → listę wpisów → formularz z etykietami i jednym przyciskiem „Zapisz treść". Każdy wpis można przywrócić do wartości domyślnych. W obszarach wielowpisowych dostępne jest „Dodaj i edytuj".
 - **Nawigacja (navbar)** — etykiety, linki, rodzic, kolejność i przycisk CTA. Zmiany pojawiają się na wszystkich stronach.
 - **Osoby** — biblioteka 121 kart (imię, zdjęcie, portret). Zmiana osoby aktualizuje ją we wszystkich składach, bez edytowania każdego roku osobno.
+
+Administrator zarządza dostępem w **Administracja → Konta i role**: dodaje i usuwa konta,
+zmienia role oraz resetuje hasła i 2FA. Zasady i zabezpieczenia opisuje [KONTA-I-ROLE.md](KONTA-I-ROLE.md).
 
 Elementy powtarzalne są zdefiniowane raz i tylko się do nich odwołują:
 

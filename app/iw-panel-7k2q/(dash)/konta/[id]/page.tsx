@@ -20,7 +20,7 @@ export default async function AccountEditor({ params }: { params: Promise<{ id: 
 
   return (
     <div className="flex max-w-2xl flex-col gap-6">
-      <BackLink href={`${ADMIN_PATH}/ustawienia#konta`} />
+      <BackLink href={`${ADMIN_PATH}/konta`} />
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-3xl font-bold">{isNew ? 'Nowe konto' : 'Edycja konta'}</h1>
         {account && <DeleteButton action={deleteAccount} id={account.id} />}
