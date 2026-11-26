@@ -5,6 +5,48 @@ export const MIN_PASSWORD_LENGTH = 12
 export const MAX_PASSWORD_LENGTH = 128
 export const ROLES = ['admin', 'editor']
 
+// Odpowiednik lib/password-policy.ts — CLI nie importuje modułów TypeScript.
+const KNOWN_WEAK_PASSWORDS = new Set([
+  'generate-a-long-random-password',
+  'change-me-to-a-long-random-string',
+  'local-development-secret-change-before-production',
+  'ci-only-secret-not-used-in-production-0123456789',
+  'password123456',
+  'password12345678',
+  'admin123456789',
+  'administrator',
+  'qwerty123456',
+  '123456789012',
+  'haslo12345678',
+])
+
+export function isWeakPassword(password) {
+  const value = String(password ?? '').trim()
+  const lower = value.toLowerCase()
+
+  if (KNOWN_WEAK_PASSWORDS.has(lower)) return true
+  if (/change[-_ ]?me|generate[-_ ]?a[-_ ]?long|default[-_ ]?password|example[-_ ]?password/i.test(value)) {
+    return true
+  }
+  if (/^(admin|administrator|haslo|password|qwerty|test)[\W_]*\d*$/i.test(value)) return true
+  if (/^(.)\1+$/.test(value)) return true
+
+  return false
+}
+
+function passwordPolicyError(password) {
+  if (password.length < MIN_PASSWORD_LENGTH) {
+    return `Hasło musi mieć co najmniej ${MIN_PASSWORD_LENGTH} znaków.`
+  }
+  if (password.length > MAX_PASSWORD_LENGTH) {
+    return `Hasło może mieć najwyżej ${MAX_PASSWORD_LENGTH} znaków.`
+  }
+  if (isWeakPassword(password)) {
+    return 'Hasło jest zbyt przewidywalne lub pochodzi z przykładu. Ustaw własne, losowe hasło.'
+  }
+  return null
+}
+
 export function normalizeEmail(email) {
   return String(email ?? '').trim().toLowerCase()
 }
@@ -28,12 +70,8 @@ export function validateAccountInput({ email, name, password, role }) {
   if (!normalizedRole) {
     return { error: 'Nieprawidłowa rola. Dozwolone: admin, editor.' }
   }
-  if (rawPassword.length < MIN_PASSWORD_LENGTH) {
-    return { error: `Hasło musi mieć co najmniej ${MIN_PASSWORD_LENGTH} znaków.` }
-  }
-  if (rawPassword.length > MAX_PASSWORD_LENGTH) {
-    return { error: `Hasło może mieć najwyżej ${MAX_PASSWORD_LENGTH} znaków.` }
-  }
+  const passwordError = passwordPolicyError(rawPassword)
+  if (passwordError) return { error: passwordError }
 
   return {
     data: {
@@ -94,12 +132,18 @@ export async function saveAccount(
       'UPDATE "user" SET "role" = \'admin\', "updatedAt" = NOW() WHERE "id" = $1',
       [existing.id],
     )
+    await client.query('DELETE FROM "session" WHERE "userId" = $1', [existing.id])
     promoted = true
   }
 
   let passwordUpdated = false
   if (updatePassword) {
     await setCredentialPassword(client, existing.id, password)
+    await client.query('DELETE FROM "session" WHERE "userId" = $1', [existing.id])
+    await client.query(
+      'DELETE FROM "verification" WHERE "value" = $1 AND "identifier" LIKE \'trust-device-%\'',
+      [existing.id],
+    )
     passwordUpdated = true
   }
 

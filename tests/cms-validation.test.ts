@@ -218,7 +218,7 @@ describe('parseFieldValue', () => {
 })
 
 describe('parseAccountInput', () => {
-  const base = { name: 'Jan', email: ' Jan@Example.com ', password: 'a'.repeat(12), role: 'editor', id: '' }
+  const base = { name: 'Jan', email: ' Jan@Example.com ', password: 'T7!kL9#pQ2@w', role: 'editor', id: '' }
 
   it('normalizuje e-mail przy poprawnych danych', () => {
     const result = parseAccountInput(form(base))
@@ -235,6 +235,12 @@ describe('parseAccountInput', () => {
   it('pozwala na puste hasło przy edycji, ale nie na krótkie', () => {
     assert.ok('data' in parseAccountInput(form({ ...base, id: 'u1', password: '' })))
     assert.ok('error' in parseAccountInput(form({ ...base, id: 'u1', password: 'short' })))
+  })
+
+  it('odrzuca hasła z przykładów i oczywiste wzorce', () => {
+    assert.ok('error' in parseAccountInput(form({ ...base, password: 'password123456' })))
+    assert.ok('error' in parseAccountInput(form({ ...base, password: 'aaaaaaaaaaaa' })))
+    assert.ok('error' in parseAccountInput(form({ ...base, password: 'change-me-to-a-long-random-string' })))
   })
 
   it('odrzuca złą rolę, e-mail i imię', () => {

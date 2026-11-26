@@ -5,9 +5,13 @@ import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
+import type { PoolClient } from 'pg'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { put } from '@vercel/blob'
 import { db, pool } from '@/lib/db'
+import { auth } from '@/lib/auth'
+import { writeAuditLog } from '@/lib/audit'
 import { navItems, posts, projects, siteContent, user, vehicles } from '@/lib/db/schema'
 import { contentAreaByKey } from '@/lib/content-registry'
 import { parseBlocks } from '@/lib/blocks'
@@ -15,6 +19,7 @@ import { ADMIN_PATH, requireAdmin, requireCms } from '@/lib/admin'
 import { hashPassword } from 'better-auth/crypto'
 import { collectDescendantIds, validateNavParent } from '@/lib/navigation'
 import { hasValidImageSignature, imageExtension, MAX_IMAGE_BYTES } from '@/lib/upload'
+import { reencodeImage } from '@/lib/image-processing'
 import { isValidPageSlug } from '@/lib/page-slug'
 import { canEditContentArea } from '@/lib/roles'
 import {
@@ -42,6 +47,120 @@ function refresh() {
   revalidatePath('/', 'layout')
 }
 
+type AdminSession = Awaited<ReturnType<typeof requireAdmin>>
+
+const ADMIN_GUARD_LOCK = 'iw:user-admin-guard'
+const UPLOAD_WINDOW_LIMIT = 20
+const UPLOAD_DAILY_LIMIT = 100
+
+async function lockAdminGuard(client: { query: (text: string, values?: unknown[]) => Promise<unknown> }) {
+  await client.query('SELECT pg_advisory_xact_lock(hashtext($1)::bigint)', [ADMIN_GUARD_LOCK])
+}
+
+async function revokeUserSessions(
+  client: PoolClient,
+  userId: string,
+  exceptToken?: string,
+) {
+  if (exceptToken) {
+    await client.query('DELETE FROM "session" WHERE "userId" = $1 AND "token" <> $2', [
+      userId,
+      exceptToken,
+    ])
+  } else {
+    await client.query('DELETE FROM "session" WHERE "userId" = $1', [userId])
+  }
+}
+
+async function revokeTrustedDevices(
+  client: PoolClient,
+  userId: string,
+) {
+  await client.query(
+    `DELETE FROM "verification"
+     WHERE "value" = $1 AND "identifier" LIKE 'trust-device-%'`,
+    [userId],
+  )
+}
+
+async function requestMeta() {
+  const requestHeaders = await headers()
+  const forwarded = requestHeaders.get('x-forwarded-for')
+  return {
+    ipAddress: forwarded?.split(',')[0]?.trim() || requestHeaders.get('x-real-ip'),
+    userAgent: requestHeaders.get('user-agent'),
+  }
+}
+
+/** Skrót: wpis do dziennika z aktorem i metadanymi żądania. */
+async function auditAction(
+  session: { user: { id: string } },
+  action: string,
+  targetType: string,
+  targetId: string | number,
+  details?: Record<string, unknown>,
+) {
+  await writeAuditLog(pool, {
+    actorId: session.user.id,
+    action,
+    targetType,
+    targetId: String(targetId),
+    details,
+    ...(await requestMeta()),
+  })
+}
+
+/** Wymaga ponownego potwierdzenia hasła i (jeśli włączone) kodu 2FA aktualnego administratora. */
+async function verifyAdminReauth(fd: FormData, session: AdminSession) {
+  const password = s(fd, 'currentPassword')
+  const code = s(fd, 'currentCode').trim()
+  if (!password) return { error: 'Podaj aktualne hasło administratora.' }
+
+  const requestHeaders = await headers()
+  try {
+    await auth.api.verifyPassword({ body: { password }, headers: requestHeaders })
+  } catch {
+    return { error: 'Nieprawidłowe hasło administratora.' }
+  }
+
+  if (session.user.twoFactorEnabled) {
+    if (!code) return { error: 'Podaj aktualny kod 2FA administratora.' }
+    try {
+      if (/^\d{6}$/.test(code)) {
+        await auth.api.verifyTOTP({ body: { code }, headers: requestHeaders })
+      } else {
+        await auth.api.verifyBackupCode({ body: { code }, headers: requestHeaders })
+      }
+    } catch {
+      return { error: 'Nieprawidłowy kod 2FA administratora.' }
+    }
+  }
+
+  return {}
+}
+
+async function checkUploadQuota(userId: string) {
+  const { rows } = await pool.query<{ recent: number; daily: number }>(
+    `SELECT
+       count(*) FILTER (WHERE "createdAt" > NOW() - interval '10 minutes')::int AS recent,
+       count(*)::int AS daily
+     FROM "audit_log"
+     WHERE "actorId" = $1
+       AND "action" = 'upload.create'
+       AND "createdAt" > NOW() - interval '24 hours'`,
+    [userId],
+  )
+  const recent = rows[0]?.recent ?? 0
+  const daily = rows[0]?.daily ?? 0
+  if (recent >= UPLOAD_WINDOW_LIMIT) {
+    return { error: 'Zbyt wiele uploadów w krótkim czasie. Spróbuj ponownie za kilka minut.' }
+  }
+  if (daily >= UPLOAD_DAILY_LIMIT) {
+    return { error: 'Dzienny limit uploadów został osiągnięty.' }
+  }
+  return {}
+}
+
 /* ---------- Preferencje ---------- */
 
 export async function saveTheme(theme: string) {
@@ -63,7 +182,7 @@ async function nextNavSortOrder(parentId: number | null, excludeId: number) {
 }
 
 export async function saveNavItem(_: FormState, fd: FormData): Promise<FormState> {
-  await requireAdmin()
+  const session = await requireAdmin()
   try {
     const data = navSchema.parse({
       label: s(fd, 'label'),
@@ -82,11 +201,17 @@ export async function saveNavItem(_: FormState, fd: FormData): Promise<FormState
       ? int.parse(rawSortOrder)
       : await nextNavSortOrder(data.parentId, itemId)
 
+    let savedId = itemId
     if (rawId) {
       await db.update(navItems).set({ ...data, sortOrder }).where(eq(navItems.id, itemId))
     } else {
-      await db.insert(navItems).values({ ...data, sortOrder })
+      const [created] = await db.insert(navItems).values({ ...data, sortOrder }).returning({ id: navItems.id })
+      savedId = created.id
     }
+    await auditAction(session, rawId ? 'nav.update' : 'nav.create', 'navigation', savedId, {
+      label: data.label,
+      href: data.href,
+    })
   } catch (e) {
     return fail(e)
   }
@@ -95,12 +220,13 @@ export async function saveNavItem(_: FormState, fd: FormData): Promise<FormState
 }
 
 export async function moveNavItem(fd: FormData) {
-  await requireAdmin()
+  const session = await requireAdmin()
   const itemId = id.parse(s(fd, 'id'))
   const items = await db
     .select({ id: navItems.id, parentId: navItems.parentId, sortOrder: navItems.sortOrder })
     .from(navItems)
-  const reordered = reorderNavSiblings(items, itemId, s(fd, 'direction') === 'up' ? 'up' : 'down')
+  const direction = s(fd, 'direction') === 'up' ? 'up' : 'down'
+  const reordered = reorderNavSiblings(items, itemId, direction)
   if (!reordered) return
 
   await db.transaction(async (tx) => {
@@ -108,22 +234,28 @@ export async function moveNavItem(fd: FormData) {
       await tx.update(navItems).set({ sortOrder: item.sortOrder }).where(eq(navItems.id, item.id))
     }
   })
+  await auditAction(session, 'nav.move', 'navigation', itemId, { direction })
   refresh()
 }
 
 export async function deleteNavItem(fd: FormData) {
-  await requireAdmin()
+  const session = await requireAdmin()
   const itemId = id.parse(s(fd, 'id'))
   const allItems = await db.select({ id: navItems.id, parentId: navItems.parentId }).from(navItems)
+  const [target] = await db.select({ label: navItems.label }).from(navItems).where(eq(navItems.id, itemId)).limit(1)
   const idsToDelete = collectDescendantIds(allItems, itemId)
   await db.delete(navItems).where(inArray(navItems.id, idsToDelete))
+  await auditAction(session, 'nav.delete', 'navigation', itemId, {
+    label: target?.label,
+    items: idsToDelete.length,
+  })
   refresh()
 }
 
 /* ---------- Blog posts ---------- */
 
 export async function savePost(_: FormState, fd: FormData): Promise<FormState> {
-  await requireCms()
+  const session = await requireCms()
   try {
     const data = {
       ...postSchema.parse({
@@ -138,11 +270,19 @@ export async function savePost(_: FormState, fd: FormData): Promise<FormState> {
       blocks: parseBlocks(s(fd, 'blocks')),
     }
     const rawId = s(fd, 'id')
+    let savedId: number
     if (rawId) {
-      await db.update(posts).set({ ...data, updatedAt: new Date() }).where(eq(posts.id, id.parse(rawId)))
+      savedId = id.parse(rawId)
+      await db.update(posts).set({ ...data, updatedAt: new Date() }).where(eq(posts.id, savedId))
     } else {
-      await db.insert(posts).values(data)
+      const [created] = await db.insert(posts).values(data).returning({ id: posts.id })
+      savedId = created.id
     }
+    await auditAction(session, rawId ? 'post.update' : 'post.create', 'post', savedId, {
+      title: data.title,
+      slug: data.slug,
+      published: data.published,
+    })
   } catch (e) {
     return fail(e)
   }
@@ -151,8 +291,11 @@ export async function savePost(_: FormState, fd: FormData): Promise<FormState> {
 }
 
 export async function deletePost(fd: FormData) {
-  await requireCms()
-  await db.delete(posts).where(eq(posts.id, id.parse(s(fd, 'id'))))
+  const session = await requireCms()
+  const postId = id.parse(s(fd, 'id'))
+  const [target] = await db.select({ title: posts.title, slug: posts.slug }).from(posts).where(eq(posts.id, postId)).limit(1)
+  await db.delete(posts).where(eq(posts.id, postId))
+  await auditAction(session, 'post.delete', 'post', postId, { title: target?.title, slug: target?.slug })
   refresh()
   redirect(`${ADMIN_PATH}/blog`)
 }
@@ -160,7 +303,7 @@ export async function deletePost(fd: FormData) {
 /* ---------- Vehicles ---------- */
 
 export async function saveVehicle(_: FormState, fd: FormData): Promise<FormState> {
-  await requireCms()
+  const session = await requireCms()
   try {
     const blocks = parseBlocks(s(fd, 'blocks'))
     const textBlock = blocks.find((block) => block.type === 'text' && typeof block.text === 'string')
@@ -183,11 +326,18 @@ export async function saveVehicle(_: FormState, fd: FormData): Promise<FormState
       blocks,
     }
     const rawId = s(fd, 'id')
+    let savedId: number
     if (rawId) {
-      await db.update(vehicles).set({ ...data, updatedAt: new Date() }).where(eq(vehicles.id, id.parse(rawId)))
+      savedId = id.parse(rawId)
+      await db.update(vehicles).set({ ...data, updatedAt: new Date() }).where(eq(vehicles.id, savedId))
     } else {
-      await db.insert(vehicles).values(data)
+      const [created] = await db.insert(vehicles).values(data).returning({ id: vehicles.id })
+      savedId = created.id
     }
+    await auditAction(session, rawId ? 'vehicle.update' : 'vehicle.create', 'vehicle', savedId, {
+      name: data.name,
+      slug: data.slug,
+    })
   } catch (e) {
     return fail(e)
   }
@@ -196,8 +346,15 @@ export async function saveVehicle(_: FormState, fd: FormData): Promise<FormState
 }
 
 export async function deleteVehicle(fd: FormData) {
-  await requireCms()
-  await db.delete(vehicles).where(eq(vehicles.id, id.parse(s(fd, 'id'))))
+  const session = await requireCms()
+  const vehicleId = id.parse(s(fd, 'id'))
+  const [target] = await db
+    .select({ name: vehicles.name, slug: vehicles.slug })
+    .from(vehicles)
+    .where(eq(vehicles.id, vehicleId))
+    .limit(1)
+  await db.delete(vehicles).where(eq(vehicles.id, vehicleId))
+  await auditAction(session, 'vehicle.delete', 'vehicle', vehicleId, { name: target?.name, slug: target?.slug })
   refresh()
   redirect(`${ADMIN_PATH}/bolidy`)
 }
@@ -205,7 +362,7 @@ export async function deleteVehicle(fd: FormData) {
 /* ---------- Projects ---------- */
 
 export async function saveProject(_: FormState, fd: FormData): Promise<FormState> {
-  await requireCms()
+  const session = await requireCms()
   try {
     const data = {
       ...projectSchema.parse({
@@ -227,11 +384,18 @@ export async function saveProject(_: FormState, fd: FormData): Promise<FormState
       blocks: parseBlocks(s(fd, 'blocks')),
     }
     const rawId = s(fd, 'id')
+    let savedId: number
     if (rawId) {
-      await db.update(projects).set({ ...data, updatedAt: new Date() }).where(eq(projects.id, id.parse(rawId)))
+      savedId = id.parse(rawId)
+      await db.update(projects).set({ ...data, updatedAt: new Date() }).where(eq(projects.id, savedId))
     } else {
-      await db.insert(projects).values(data)
+      const [created] = await db.insert(projects).values(data).returning({ id: projects.id })
+      savedId = created.id
     }
+    await auditAction(session, rawId ? 'project.update' : 'project.create', 'project', savedId, {
+      title: data.title,
+      category: data.category,
+    })
   } catch (e) {
     return fail(e)
   }
@@ -240,8 +404,18 @@ export async function saveProject(_: FormState, fd: FormData): Promise<FormState
 }
 
 export async function deleteProject(fd: FormData) {
-  await requireCms()
-  await db.delete(projects).where(eq(projects.id, id.parse(s(fd, 'id'))))
+  const session = await requireCms()
+  const projectId = id.parse(s(fd, 'id'))
+  const [target] = await db
+    .select({ title: projects.title, category: projects.category })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1)
+  await db.delete(projects).where(eq(projects.id, projectId))
+  await auditAction(session, 'project.delete', 'project', projectId, {
+    title: target?.title,
+    category: target?.category,
+  })
   refresh()
   redirect(`${ADMIN_PATH}/projekty`)
 }
@@ -269,15 +443,26 @@ export async function saveContent(_: FormState, fd: FormData): Promise<FormState
     for (const field of area.fields) data[field.name] = parseFieldValue(field, fd)
     const now = new Date()
     const [existing] = await db
-      .select({ id: siteContent.id })
+      .select({ id: siteContent.id, data: siteContent.data })
       .from(siteContent)
       .where(and(eq(siteContent.area, areaKey), eq(siteContent.entryKey, entryKey)))
       .limit(1)
+    const changedFields = existing
+      ? area.fields
+          .filter((field) => JSON.stringify(existing.data?.[field.name] ?? null) !== JSON.stringify(data[field.name] ?? null))
+          .map((field) => field.label)
+      : []
     if (existing) {
       await db.update(siteContent).set({ data, updatedAt: now }).where(eq(siteContent.id, existing.id))
     } else {
       await db.insert(siteContent).values({ area: areaKey, entryKey, data })
     }
+    await auditAction(session, 'content.save', 'content', `${areaKey}/${entryKey}`, {
+      area: areaKey,
+      key: entryKey,
+      created: !existing,
+      changedFields,
+    })
   } catch (e) {
     if (e instanceof ContentFieldError) return { error: e.message }
     return fail(e)
@@ -304,6 +489,11 @@ export async function addContentEntry(fd: FormData) {
     .insert(siteContent)
     .values({ area: areaKey, entryKey, data: name ? { title: name } : {} })
     .onConflictDoNothing()
+  await auditAction(session, 'content.create', 'content', `${areaKey}/${entryKey}`, {
+    area: areaKey,
+    key: entryKey,
+    name,
+  })
   refresh()
   redirect(`${ADMIN_PATH}/tresc/${areaKey}/${encodeURIComponent(entryKey)}`)
 }
@@ -316,13 +506,20 @@ export async function deleteContentEntry(fd: FormData) {
   await db
     .delete(siteContent)
     .where(and(eq(siteContent.area, areaKey), eq(siteContent.entryKey, entryKey)))
+  await auditAction(session, 'content.delete', 'content', `${areaKey}/${entryKey}`, {
+    area: areaKey,
+    key: entryKey,
+  })
   refresh()
 }
 
 /* ---------- Image upload ---------- */
 
 export async function uploadImage(fd: FormData): Promise<{ url?: string; error?: string }> {
-  await requireCms()
+  const session = await requireCms()
+  const quota = await checkUploadQuota(session.user.id)
+  if ('error' in quota) return quota
+
   const file = fd.get('file')
   if (!(file instanceof File)) return { error: 'Brak pliku.' }
 
@@ -333,7 +530,23 @@ export async function uploadImage(fd: FormData): Promise<{ url?: string; error?:
   const bytes = new Uint8Array(await file.arrayBuffer())
   if (!hasValidImageSignature(bytes, ext)) return { error: 'Plik nie jest prawidłowym obrazem.' }
 
-  const filename = `${randomUUID()}.${ext}`
+  let processed: Awaited<ReturnType<typeof reencodeImage>>
+  try {
+    processed = await reencodeImage(bytes, ext)
+  } catch {
+    return { error: 'Nie udało się przetworzyć obrazu. Spróbuj zapisać go ponownie.' }
+  }
+
+  const filename = `${randomUUID()}.${processed.extension}`
+  const meta = await requestMeta()
+  const audit = {
+    actorId: session.user.id,
+    action: 'upload.create',
+    targetType: 'upload',
+    targetId: filename,
+    details: { bytes: processed.data.length, contentType: processed.contentType },
+    ...meta,
+  }
 
   // Lokalny tryb developerski: bez tokenu Vercel Blob zapisujemy do public/uploads/.
   // Dzięki temu panel działa w pełni także bez konta Vercel.
@@ -341,7 +554,8 @@ export async function uploadImage(fd: FormData): Promise<{ url?: string; error?:
     try {
       const dir = join(process.cwd(), 'public', 'uploads')
       await mkdir(dir, { recursive: true })
-      await writeFile(join(dir, filename), bytes)
+      await writeFile(join(dir, filename), processed.data)
+      await writeAuditLog(pool, audit)
       return { url: `/api/uploads/${filename}` }
     } catch (e) {
       console.error('[cms] local upload failed', e)
@@ -351,7 +565,11 @@ export async function uploadImage(fd: FormData): Promise<{ url?: string; error?:
 
   // Produkcja: prywatny bucket, serwowany przez /api/media (zob. route.ts).
   try {
-    const blob = await put(`cms/${filename}`, file, { access: 'private', contentType: file.type })
+    const blob = await put(`cms/${filename}`, processed.data, {
+      access: 'private',
+      contentType: processed.contentType,
+    })
+    await writeAuditLog(pool, audit)
     return { url: `/api/media?pathname=${encodeURIComponent(blob.pathname)}` }
   } catch (e) {
     console.error('[cms] upload failed', e)
@@ -362,24 +580,43 @@ export async function uploadImage(fd: FormData): Promise<{ url?: string; error?:
 /* ---------- Accounts ---------- */
 
 export async function saveAccount(_: FormState, fd: FormData): Promise<FormState> {
-  await requireAdmin()
+  const session = await requireAdmin()
   const parsed = parseAccountInput(fd)
   if ('error' in parsed) return { error: parsed.error }
   const { name, email, password, role, id: rawId } = parsed.data
+  const meta = await requestMeta()
+  let auditEntry: Parameters<typeof writeAuditLog>[1] | undefined
 
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
+    // Serializuje zmiany ról i reset haseł, żeby dwóch administratorów nie mogło
+    // jednocześnie zdegradować/usunąć ostatniego admina (TOCTOU).
+    await lockAdminGuard(client)
+
     if (rawId) {
-      const { rows } = await client.query<{ id: string; role: string }>(
-        'SELECT "id", "role" FROM "user" WHERE "id" = $1',
+      const { rows } = await client.query<{ id: string; role: string; email: string }>(
+        'SELECT "id", "role", "email" FROM "user" WHERE "id" = $1 FOR UPDATE',
         [rawId],
       )
-      if (!rows[0]) {
+      const target = rows[0]
+      if (!target) {
         await client.query('ROLLBACK')
         return { error: 'Nie znaleziono konta.' }
       }
-      if (rows[0].role === 'admin' && role !== 'admin') {
+
+      const isSelf = rawId === session.user.id
+      const passwordChanged = Boolean(password)
+      const roleChanged = target.role !== role
+      if (!isSelf && (passwordChanged || roleChanged)) {
+        const reauth = await verifyAdminReauth(fd, session)
+        if ('error' in reauth) {
+          await client.query('ROLLBACK')
+          return { error: reauth.error }
+        }
+      }
+
+      if (target.role === 'admin' && role !== 'admin') {
         const { rows: admins } = await client.query<{ count: string }>(
           `SELECT count(*)::text AS count FROM "user" WHERE "role" = 'admin'`,
         )
@@ -388,19 +625,54 @@ export async function saveAccount(_: FormState, fd: FormData): Promise<FormState
           return { error: 'Zawsze musi pozostać co najmniej jeden administrator.' }
         }
       }
+
       await client.query(
         'UPDATE "user" SET "name" = $1, "email" = $2, "role" = $3, "updatedAt" = NOW() WHERE "id" = $4',
         [name, email, role, rawId],
       )
+
       if (password) {
         const passwordHash = await hashPassword(password)
-        await client.query(
+        const updated = await client.query(
           `UPDATE "account" SET "password" = $1, "updatedAt" = NOW()
            WHERE "userId" = $2 AND "providerId" = 'credential'`,
           [passwordHash, rawId],
         )
+        if (updated.rowCount === 0) {
+          await client.query(
+            `INSERT INTO "account" ("id", "accountId", "providerId", "userId", "password")
+             VALUES ($1, $2, 'credential', $3, $4)`,
+            [randomUUID(), rawId, rawId, passwordHash],
+          )
+        }
+        await revokeUserSessions(client, rawId, isSelf ? session.session.token : undefined)
+        await revokeTrustedDevices(client, rawId)
+      }
+      if (roleChanged) await revokeUserSessions(client, rawId)
+
+      auditEntry = {
+        actorId: session.user.id,
+        action: 'account.update',
+        targetType: 'user',
+        targetId: rawId,
+        details: {
+          email,
+          role,
+          passwordReset: passwordChanged,
+          roleChanged,
+          self: isSelf,
+        },
+        ...meta,
       }
     } else {
+      if (role === 'admin') {
+        const reauth = await verifyAdminReauth(fd, session)
+        if ('error' in reauth) {
+          await client.query('ROLLBACK')
+          return { error: reauth.error }
+        }
+      }
+
       const userId = randomUUID()
       const passwordHash = await hashPassword(password)
       await client.query(
@@ -413,6 +685,14 @@ export async function saveAccount(_: FormState, fd: FormData): Promise<FormState
          VALUES ($1, $2, 'credential', $3, $4)`,
         [randomUUID(), userId, userId, passwordHash],
       )
+      auditEntry = {
+        actorId: session.user.id,
+        action: 'account.create',
+        targetType: 'user',
+        targetId: userId,
+        details: { email, role },
+        ...meta,
+      }
     }
     await client.query('COMMIT')
   } catch (e) {
@@ -426,6 +706,7 @@ export async function saveAccount(_: FormState, fd: FormData): Promise<FormState
     client.release()
   }
 
+  if (auditEntry) await writeAuditLog(pool, auditEntry)
   refresh()
   redirect(`${ADMIN_PATH}/konta`)
   return { ok: true }
@@ -436,15 +717,23 @@ export async function deleteAccount(fd: FormData) {
   const userId = s(fd, 'id')
   if (!userId) return
   if (session.user.id === userId) return
+  const meta = await requestMeta()
+  let auditEntry: Parameters<typeof writeAuditLog>[1] | undefined
 
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
-    const { rows } = await client.query<{ role: string }>(
-      'SELECT "role" FROM "user" WHERE "id" = $1',
+    await lockAdminGuard(client)
+    const { rows } = await client.query<{ role: string; email: string }>(
+      'SELECT "role", "email" FROM "user" WHERE "id" = $1 FOR UPDATE',
       [userId],
     )
-    if (rows[0]?.role === 'admin') {
+    const target = rows[0]
+    if (!target) {
+      await client.query('ROLLBACK')
+      return
+    }
+    if (target.role === 'admin') {
       const { rows: admins } = await client.query<{ count: string }>(
         `SELECT count(*)::text AS count FROM "user" WHERE "role" = 'admin'`,
       )
@@ -454,6 +743,14 @@ export async function deleteAccount(fd: FormData) {
       }
     }
     await client.query('DELETE FROM "user" WHERE "id" = $1', [userId])
+    auditEntry = {
+      actorId: session.user.id,
+      action: 'account.delete',
+      targetType: 'user',
+      targetId: userId,
+      details: { email: target.email, role: target.role },
+      ...meta,
+    }
     await client.query('COMMIT')
   } catch (e) {
     await client.query('ROLLBACK')
@@ -461,32 +758,68 @@ export async function deleteAccount(fd: FormData) {
   } finally {
     client.release()
   }
+  if (auditEntry) await writeAuditLog(pool, auditEntry)
   refresh()
   redirect(`${ADMIN_PATH}/konta`)
 }
 
-export async function resetAccountSecurity(fd: FormData) {
+export async function resetAccountSecurity(_: FormState, fd: FormData): Promise<FormState> {
   const session = await requireAdmin()
   const userId = s(fd, 'id')
   // Własne 2FA wyłącza się w „Bezpieczeństwo” kodem z aplikacji, nie resetem administratora.
-  if (!userId || userId === session.user.id) return
+  if (!userId) return { error: 'Brak konta do resetu.' }
+  if (userId === session.user.id) {
+    return { error: 'Własne 2FA wyłącz w sekcji „Bezpieczeństwo”.' }
+  }
+  const meta = await requestMeta()
+  let auditEntry: Parameters<typeof writeAuditLog>[1] | undefined
 
   const client = await pool.connect()
   try {
     await client.query('BEGIN')
+    await lockAdminGuard(client)
+    const { rows } = await client.query<{ role: string; email: string }>(
+      'SELECT "role", "email" FROM "user" WHERE "id" = $1 FOR UPDATE',
+      [userId],
+    )
+    const target = rows[0]
+    if (!target) {
+      await client.query('ROLLBACK')
+      return { error: 'Nie znaleziono konta.' }
+    }
+
+    const reauth = await verifyAdminReauth(fd, session)
+    if ('error' in reauth) {
+      await client.query('ROLLBACK')
+      return { error: reauth.error }
+    }
+
     await client.query('DELETE FROM "twoFactor" WHERE "userId" = $1', [userId])
     await client.query(
       'UPDATE "user" SET "twoFactorEnabled" = FALSE, "updatedAt" = NOW() WHERE "id" = $1',
       [userId],
     )
+    await revokeUserSessions(client, userId)
+    await revokeTrustedDevices(client, userId)
+    auditEntry = {
+      actorId: session.user.id,
+      action: 'account.two_factor_reset',
+      targetType: 'user',
+      targetId: userId,
+      details: { email: target.email, role: target.role },
+      ...meta,
+    }
     await client.query('COMMIT')
   } catch (e) {
     await client.query('ROLLBACK')
-    throw e
+    console.error('[cms] 2FA reset failed', e)
+    return { error: 'Nie udało się zresetować 2FA.' }
   } finally {
     client.release()
   }
 
+  if (auditEntry) await writeAuditLog(pool, auditEntry)
   refresh()
   redirect(`${ADMIN_PATH}/konta/${encodeURIComponent(userId)}`)
+  return { ok: true }
 }

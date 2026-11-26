@@ -95,6 +95,18 @@ export const siteContent = pgTable(
   (table) => [uniqueIndex('site_content_area_key_idx').on(table.area, table.entryKey)],
 )
 
+export const auditLog = pgTable('audit_log', {
+  id: serial('id').primaryKey(),
+  actorId: text('actorId'),
+  action: text('action').notNull(),
+  targetType: text('targetType'),
+  targetId: text('targetId'),
+  details: jsonb('details').$type<Record<string, unknown>>().notNull().default({}),
+  ipAddress: text('ipAddress'),
+  userAgent: text('userAgent'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+})
+
 export type NavItem = typeof navItems.$inferSelect
 export type Post = typeof posts.$inferSelect
 export type Vehicle = typeof vehicles.$inferSelect

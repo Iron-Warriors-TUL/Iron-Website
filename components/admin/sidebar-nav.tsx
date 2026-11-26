@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Menu,
   PencilLine,
+  ScrollText,
   Settings,
   UserCog,
   Users,
@@ -43,6 +44,7 @@ const groups: { title?: string; links: NavLink[] }[] = [
     title: 'Administracja',
     links: [
       { href: `${ADMIN_PATH}/konta`, label: 'Konta i role', icon: UserCog, adminOnly: true },
+      { href: `${ADMIN_PATH}/dziennik`, label: 'Dziennik zdarzeń', icon: ScrollText, adminOnly: true },
       { href: `${ADMIN_PATH}/nawigacja`, label: 'Menu strony', icon: Menu, adminOnly: true },
     ],
   },

@@ -28,28 +28,11 @@ const nextConfig = {
     ]
   },
   async headers() {
-    const isDev = process.env.NODE_ENV !== 'production'
-    const csp = [
-      "default-src 'self'",
-      // Next.js wstrzykuje inline skrypty hydratacji; 'unsafe-eval' tylko w trybie dev (HMR).
-      `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https:",
-      "font-src 'self' data:",
-      // Osadzone filmy (tło strony głównej, bolidy) i mapa na stronie kontaktowej.
-      "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://maps.google.com https://www.google.com",
-      `connect-src 'self' https:${isDev ? ' ws: wss:' : ''}`,
-      "frame-ancestors 'self'",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "object-src 'none'",
-    ].join('; ')
-
+    // CSP z nonce jest ustawiany w proxy.ts (wymaga dynamicznego renderowania).
     return [
       {
         source: '/:path*',
         headers: [
-          { key: 'Content-Security-Policy', value: csp },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },

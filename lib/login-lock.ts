@@ -53,3 +53,55 @@ export function parseTrustedProxies(raw: string | undefined): string[] {
     .map((part) => part.trim())
     .filter(Boolean)
 }
+
+function ipv4ToNumber(ip: string): number | null {
+  const parts = ip.split('.')
+  if (parts.length !== 4) return null
+  let value = 0
+  for (const part of parts) {
+    if (!/^\d{1,3}$/.test(part)) return null
+    const octet = Number(part)
+    if (octet > 255) return null
+    value = (value << 8) | octet
+  }
+  return value >>> 0
+}
+
+function isTrustedProxy(ip: string, trustedProxies: string[]): boolean {
+  const value = ipv4ToNumber(ip)
+  for (const entry of trustedProxies) {
+    if (entry === ip) return true
+    const [base, bitsRaw] = entry.split('/')
+    if (!base || bitsRaw === undefined) continue
+    const baseValue = ipv4ToNumber(base)
+    const bits = Number(bitsRaw)
+    if (value === null || baseValue === null || !Number.isInteger(bits) || bits < 0 || bits > 32) continue
+    const mask = bits === 0 ? 0 : (0xffffffff << (32 - bits)) >>> 0
+    if ((value & mask) === (baseValue & mask)) return true
+  }
+  return false
+}
+
+/**
+ * Adres klienta do limitów logowania, wyliczony z nagłówka proxy. Bez listy zaufanych
+ * proxy akceptujemy tylko pojedynczy adres (łańcuch z dopisanymi adresami da się podrobić).
+ * Przy skonfigurowanych proxy bierzemy pierwszy adres od prawej spoza ich listy.
+ */
+export function resolveClientIp(
+  headers: Headers,
+  { headerName = 'x-forwarded-for', trustedProxies = [] }: { headerName?: string; trustedProxies?: string[] } = {},
+): string | null {
+  const raw = headers.get(headerName)
+  if (!raw) return null
+  const addresses = raw
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean)
+  if (addresses.length === 0) return null
+  if (trustedProxies.length === 0) return addresses.length === 1 ? (addresses[0] ?? null) : null
+  for (let i = addresses.length - 1; i >= 0; i--) {
+    const address = addresses[i]
+    if (address && !isTrustedProxy(address, trustedProxies)) return address
+  }
+  return null
+}

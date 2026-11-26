@@ -9,7 +9,7 @@ Plik `render.yaml` opisuje całe środowisko: darmowy Web Service (Node 24) i da
 3. Wybierz repo, ustaw **Branch** na gałąź z tym plikiem i nadaj nazwę Blueprintu (np. `iron-warriors`).
 4. Render poprosi o dwie wartości:
    - `ADMIN_EMAIL`: e-mail konta administratora,
-   - `ADMIN_PASSWORD`: hasło (min. 12 znaków).
+   - `ADMIN_PASSWORD`: własne, losowe hasło (min. 12 znaków; wartości z przykładów są odrzucane).
 5. Kliknij **Deploy Blueprint**. Gdy usługa `iron-warriors` ma status **Live**, adres strony jest u góry jej strony (np. `https://iron-warriors.onrender.com`).
 6. Panel: `<adres>/iw-panel-7k2q`. Konto dla klienta (rola edytor) najlepiej założyć w panelu, w zakładce kont.
 

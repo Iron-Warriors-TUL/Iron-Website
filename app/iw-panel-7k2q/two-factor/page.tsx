@@ -11,14 +11,15 @@ export default function TwoFactorPage() {
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const [trustDevice, setTrustDevice] = useState(false)
 
   async function verifyTotp(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setPending(true)
     setError(null)
     const res = /^\d{6,8}$/.test(code)
-      ? await authClient.twoFactor.verifyTotp({ code, trustDevice: true })
-      : await authClient.twoFactor.verifyBackupCode({ code, trustDevice: true })
+      ? await authClient.twoFactor.verifyTotp({ code, trustDevice })
+      : await authClient.twoFactor.verifyBackupCode({ code, trustDevice })
     setPending(false)
     if (res.error) {
       setError('Nieprawidłowy kod weryfikacyjny.')
@@ -56,6 +57,15 @@ export default function TwoFactorPage() {
               className={`${inputClass} text-center text-lg tracking-widest`}
             />
           </Field>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={trustDevice}
+              onChange={(e) => setTrustDevice(e.target.checked)}
+              className="size-4 accent-[var(--primary)]"
+            />
+            Zapamiętaj to urządzenie na 30 dni
+          </label>
           {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           <button
             type="submit"

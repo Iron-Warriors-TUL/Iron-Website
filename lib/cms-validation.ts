@@ -2,6 +2,7 @@ import { z } from 'zod'
 import type { Field } from './content-registry'
 import { parseBlocks } from './blocks'
 import { isHttpsUrl, isSafePath } from './safe-url'
+import { passwordPolicyError } from './password-policy'
 
 /*
  * Czysta walidacja i parsowanie danych z formularzy panelu CMS.
@@ -30,12 +31,29 @@ export const slug = z
 
 // Ścieżka lokalna: pojedynczy '/' na początku (odrzuca protokołowo-względne '//host').
 // Zewnętrzne adresy wyłącznie po HTTPS.
+const isImageAddress = (v: string) => v === '' || isSafePath(v) || isHttpsUrl(v)
+
 export const imageUrl = z
   .string()
   .trim()
   .max(2000)
-  .refine((v) => v === '' || isSafePath(v) || isHttpsUrl(v), 'Nieprawidłowy adres obrazu')
+  .refine(isImageAddress, 'Nieprawidłowy adres obrazu')
   .transform((v) => (v === '' ? null : v))
+
+/** Lista adresów obrazów w osobnych liniach (np. galeria projektu). */
+const imageUrlList = z
+  .string()
+  .trim()
+  .max(4000)
+  .refine(
+    (value) =>
+      value
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .every((line) => isSafePath(line) || isHttpsUrl(line)),
+    'Każdy adres obrazu musi być ścieżką (/...) lub adresem https://',
+  )
 
 export const href = z
   .string()
@@ -122,7 +140,7 @@ export const projectSchema = z.object({
   period: str(50),
   description: str(10000),
   heading: str(500),
-  imageUrls: str(4000),
+  imageUrls: imageUrlList,
   fundingBar: z.boolean(),
   fundingBarText: str(2000),
   fundingBarLogo: imageUrl.transform((v) => v ?? ''),
@@ -199,7 +217,10 @@ export function parseFieldValue(field: Field, raw: FormData): unknown {
   if (field.type === 'url' && value && !isHttpsUrl(value) && !isSafePath(value)) {
     throw new ContentFieldError('Link musi zaczynać się od https:// lub /')
   }
-  return value.slice(0, 4000)
+  if (field.type === 'image' && value && !isHttpsUrl(value) && !isSafePath(value)) {
+    throw new ContentFieldError('Adres obrazu musi zaczynać się od https:// lub /')
+  }
+  return value.slice(0, field.type === 'image' ? 2000 : 4000)
 }
 
 /* ---------- Konta ---------- */
@@ -225,8 +246,10 @@ export function parseAccountInput(fd: FormData): { data: AccountInput } | { erro
     return { error: 'Podaj prawidłowy adres e-mail.' }
   }
   if (role !== 'admin' && role !== 'editor') return { error: 'Nieprawidłowa rola.' }
-  if (!rawId && password.length < 12) return { error: 'Hasło musi mieć co najmniej 12 znaków.' }
-  if (rawId && password && password.length < 12) return { error: 'Nowe hasło musi mieć co najmniej 12 znaków.' }
+  if (!rawId || password) {
+    const passwordError = passwordPolicyError(password)
+    if (passwordError) return { error: passwordError }
+  }
 
   return { data: { name, email, password, role, id: rawId } }
 }

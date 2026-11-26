@@ -25,8 +25,18 @@ export function hasValidImageSignature(bytes: Uint8Array, ext: string): boolean 
         String.fromCharCode(...bytes.slice(0, 4)) === 'RIFF' &&
         String.fromCharCode(...bytes.slice(8, 12)) === 'WEBP'
       )
-    case 'avif':
-      return String.fromCharCode(...bytes.slice(4, 8)) === 'ftyp'
+    case 'avif': {
+      if (bytes.length < 16) return false
+      const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength)
+      const boxSize = view.getUint32(0)
+      if (boxSize < 16 || boxSize > bytes.length) return false
+      if (String.fromCharCode(...bytes.slice(4, 8)) !== 'ftyp') return false
+      const brands: string[] = [String.fromCharCode(...bytes.slice(8, 12))]
+      for (let offset = 16; offset + 4 <= boxSize; offset += 4) {
+        brands.push(String.fromCharCode(...bytes.slice(offset, offset + 4)))
+      }
+      return brands.some((brand) => brand === 'avif' || brand === 'avis')
+    }
     default:
       return false
   }
