@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
-  BookOpen,
   Car,
   FileText,
   FolderKanban,
@@ -48,7 +47,6 @@ const groups: { title?: string; links: NavLink[] }[] = [
       { href: `${ADMIN_PATH}/nawigacja`, label: 'Menu strony', icon: Menu, adminOnly: true },
     ],
   },
-  { title: 'Pomoc', links: [{ href: `${ADMIN_PATH}/instrukcja`, label: 'Instrukcja obsługi', icon: BookOpen }] },
 ]
 
 function isActive(pathname: string, link: NavLink) {
