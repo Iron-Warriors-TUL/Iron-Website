@@ -28,6 +28,22 @@ describe('hasValidImageSignature', () => {
     assert.equal(hasValidImageSignature(webp, 'webp'), true)
   })
 
+  it('wymaga marki avif/avis w kontenerze AVIF', () => {
+    const avif = new Uint8Array(20)
+    new DataView(avif.buffer).setUint32(0, 20)
+    avif.set(new TextEncoder().encode('ftyp'), 4)
+    avif.set(new TextEncoder().encode('avif'), 8)
+    avif.set(new TextEncoder().encode('mif1'), 16)
+    assert.equal(hasValidImageSignature(avif, 'avif'), true)
+
+    const heic = new Uint8Array(20)
+    new DataView(heic.buffer).setUint32(0, 20)
+    heic.set(new TextEncoder().encode('ftyp'), 4)
+    heic.set(new TextEncoder().encode('heic'), 8)
+    heic.set(new TextEncoder().encode('heic'), 16)
+    assert.equal(hasValidImageSignature(heic, 'avif'), false)
+  })
+
   it('odrzuca pliki z fałszywym MIME', () => {
     const html = new TextEncoder().encode('<script>alert(1)</script>'.padEnd(16, ' '))
     assert.equal(hasValidImageSignature(html, 'jpg'), false)

@@ -2,14 +2,9 @@ import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { BlockRenderer } from '@/components/site/block-renderer'
 import { blockStr, parseBlocks } from '@/lib/blocks'
-import { getContent, getEntryKeys } from '@/lib/content'
+import { getContent } from '@/lib/content'
 
 type Props = { params: Promise<{ year: string }> }
-
-export async function generateStaticParams() {
-  const years = await getEntryKeys('partner-years')
-  return years.map((year) => ({ year }))
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { year } = await params

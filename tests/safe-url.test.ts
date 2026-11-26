@@ -15,6 +15,13 @@ describe('isSafePath', () => {
     assert.equal(isSafePath('foo/bar'), false)
     assert.equal(isSafePath(''), false)
   })
+
+  it('odrzuca backslash, białe znaki i cudzysłowy', () => {
+    assert.equal(isSafePath('/\\evil.example/x'), false)
+    assert.equal(isSafePath('/a b'), false)
+    assert.equal(isSafePath('/a"b'), false)
+    assert.equal(isSafePath('/a\tb'), false)
+  })
 })
 
 describe('isHttpsUrl', () => {
@@ -25,6 +32,9 @@ describe('isHttpsUrl', () => {
     assert.equal(isHttpsUrl('/images/a.png'), false)
     assert.equal(isHttpsUrl('https://'), false)
     assert.equal(isHttpsUrl('javascript:alert(1)'), false)
+    assert.equal(isHttpsUrl('https://user:pass@example.com'), false)
+    assert.equal(isHttpsUrl('https://example.com\\@evil.example'), false)
+    assert.equal(isHttpsUrl('https://example.com/a b'), false)
   })
 })
 

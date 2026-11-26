@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { desc, eq } from 'drizzle-orm'
 import { Plus } from 'lucide-react'
-import { db } from '@/lib/db'
+import { db, pool } from '@/lib/db'
 import { user } from '@/lib/db/schema'
 import { ADMIN_PATH, requireCmsPage } from '@/lib/admin'
 import { isRole, ROLE_LABELS } from '@/lib/roles'
@@ -34,6 +34,20 @@ export default async function SettingsPage() {
     .where(eq(user.id, session.user.id))
     .limit(1)
   const accounts = isAdmin ? await db.select().from(user).orderBy(desc(user.createdAt)) : []
+  const trustedDevices = me?.twoFactorEnabled
+    ? (
+        await pool.query<{ identifier: string; createdAt: Date; expiresAt: Date }>(
+          `SELECT "identifier", "createdAt", "expiresAt" FROM "verification"
+           WHERE "value" = $1 AND "identifier" LIKE 'trust-device-%' AND "expiresAt" > NOW()
+           ORDER BY "createdAt" DESC`,
+          [session.user.id],
+        )
+      ).rows.map((row) => ({
+        id: row.identifier,
+        createdAt: row.createdAt.toISOString(),
+        expiresAt: row.expiresAt.toISOString(),
+      }))
+    : []
 
   return (
     <div className="flex max-w-3xl flex-col gap-10">
@@ -55,7 +69,7 @@ export default async function SettingsPage() {
       </Section>
 
       <Section id="bezpieczenstwo" title="Bezpieczeństwo">
-        <SecuritySettings enabled={Boolean(me?.twoFactorEnabled)} />
+        <SecuritySettings enabled={Boolean(me?.twoFactorEnabled)} trustedDevices={trustedDevices} />
       </Section>
 
       {isAdmin && (

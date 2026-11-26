@@ -1,8 +1,10 @@
 'use server'
 
-import { headers } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { auth } from '@/lib/auth'
 import { requireCms } from '@/lib/admin'
+import { pool } from '@/lib/db'
+import { writeAuditLog } from '@/lib/audit'
 
 type Result = { ok?: boolean; error?: string }
 
@@ -59,6 +61,39 @@ export async function disableTwoFactor(password: string, rawCode: string): Promi
     return { error: 'Nieprawidłowe hasło.' }
   }
 
+  // Zmiana 2FA unieważnia pozostałe sesje i zaufane urządzenia.
+  await pool.query('DELETE FROM "session" WHERE "userId" = $1 AND "token" <> $2', [
+    userId,
+    session.session.token,
+  ])
+  await pool.query(
+    `DELETE FROM "verification"
+     WHERE "value" = $1 AND "identifier" LIKE 'trust-device-%'`,
+    [userId],
+  )
+  await writeAuditLog(pool, {
+    actorId: userId,
+    action: 'account.two_factor_disabled',
+    targetType: 'user',
+    targetId: userId,
+  })
+
   failures.delete(userId)
+  return { ok: true }
+}
+
+/** Unieważnia wszystkie zaufane urządzenia (ciasteczka „trust_device”) bieżącego użytkownika. */
+export async function revokeTrustedDevices(): Promise<Result> {
+  const session = await requireCms()
+  await pool.query(
+    `DELETE FROM "verification"
+     WHERE "value" = $1 AND "identifier" LIKE 'trust-device-%'`,
+    [session.user.id],
+  )
+
+  const cookieStore = await cookies()
+  for (const name of ['better-auth.trust_device', '__Secure-better-auth.trust_device']) {
+    cookieStore.delete(name)
+  }
   return { ok: true }
 }

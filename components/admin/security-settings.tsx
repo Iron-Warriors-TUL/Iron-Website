@@ -6,7 +6,7 @@ import Image from 'next/image'
 import QRCode from 'qrcode'
 import { ShieldCheck, ShieldOff } from 'lucide-react'
 import { authClient } from '@/lib/auth-client'
-import { disableTwoFactor } from '@/app/iw-panel-7k2q/security-actions'
+import { disableTwoFactor, revokeTrustedDevices } from '@/app/iw-panel-7k2q/security-actions'
 import { Field, inputClass } from './fields'
 
 type Step = 'idle' | 'scan' | 'done'
@@ -49,7 +49,15 @@ function BackupCodes({ codes }: { codes: string[] }) {
  * Włączenie: hasło → kod QR i klucz do ręcznego wpisania → potwierdzenie kodem z aplikacji.
  * Wyłączenie: hasło + aktualny kod z aplikacji lub kod zapasowy (sprawdzane na serwerze).
  */
-export function SecuritySettings({ enabled }: { enabled: boolean }) {
+type TrustedDevice = { id: string; createdAt: string; expiresAt: string }
+
+export function SecuritySettings({
+  enabled,
+  trustedDevices = [],
+}: {
+  enabled: boolean
+  trustedDevices?: TrustedDevice[]
+}) {
   const router = useRouter()
   const [step, setStep] = useState<Step>('idle')
   const [password, setPassword] = useState('')
@@ -60,6 +68,7 @@ export function SecuritySettings({ enabled }: { enabled: boolean }) {
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const [devices, setDevices] = useState(trustedDevices)
 
   const reset = () => {
     setPassword('')
@@ -96,6 +105,21 @@ export function SecuritySettings({ enabled }: { enabled: boolean }) {
     setCode('')
     setStep('done')
     setMessage('Gotowe. Od teraz przy logowaniu panel zapyta o kod z aplikacji.')
+    router.refresh()
+  }
+
+  async function revokeDevices() {
+    setPending(true)
+    setError(null)
+    setMessage(null)
+    const res = await revokeTrustedDevices()
+    setPending(false)
+    if (res.error) {
+      setError(res.error)
+      return
+    }
+    setDevices([])
+    setMessage('Wszystkie zaufane urządzenia zostały unieważnione. Przy kolejnym logowaniu wymagany będzie kod 2FA.')
     router.refresh()
   }
 
@@ -218,6 +242,35 @@ export function SecuritySettings({ enabled }: { enabled: boolean }) {
           </div>
           <button type="button" onClick={turnOff} disabled={pending || !password || !code} className={`${secondaryButton} self-start hover:border-destructive hover:text-destructive`}>
             Wyłącz 2FA
+          </button>
+        </div>
+      )}
+
+      {enabled && (
+        <div className="flex flex-col gap-3 border-t border-border pt-5">
+          <h3 className="font-semibold">Zaufane urządzenia</h3>
+          <p className="text-sm text-muted-foreground">
+            Urządzenia, na których zaznaczono „zapamiętaj mnie” przy logowaniu, nie pytają o kod 2FA przez 30 dni.
+            Unieważnij je, jeśli zgubiłeś laptop lub telefon.
+          </p>
+          {devices.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Brak zaufanych urządzeń.</p>
+          ) : (
+            <ul className="flex flex-col gap-1 text-sm">
+              {devices.map((device) => (
+                <li key={device.id} className="rounded-sm bg-secondary px-3 py-2 font-mono text-xs">
+                  …{device.id.slice(-8)} · dodano {device.createdAt.slice(0, 10)} · ważne do {device.expiresAt.slice(0, 10)}
+                </li>
+              ))}
+            </ul>
+          )}
+          <button
+            type="button"
+            onClick={revokeDevices}
+            disabled={pending || devices.length === 0}
+            className={`${secondaryButton} self-start hover:border-destructive hover:text-destructive`}
+          >
+            Unieważnij wszystkie urządzenia
           </button>
         </div>
       )}

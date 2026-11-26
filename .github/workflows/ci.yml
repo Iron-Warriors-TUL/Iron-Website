@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -32,15 +35,16 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://iw_user:iw_dev_password@localhost:55432/ironwarriors
-      # Sekret tylko dla CI, nie używany nigdzie poza tym jobem.
-      BETTER_AUTH_SECRET: ci-only-secret-not-used-in-production-0123456789
       BETTER_AUTH_URL: http://localhost:3000
       NEXT_TELEMETRY_DISABLED: 1
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Generate ephemeral auth secret
+        run: echo "BETTER_AUTH_SECRET=$(openssl rand -base64 48)" >> "$GITHUB_ENV"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 24
 
@@ -51,7 +55,7 @@ jobs:
         id: pnpm-store
         run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ${{ steps.pnpm-store.outputs.path }}
           key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -59,6 +63,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level high
 
       - name: Typecheck
         run: pnpm typecheck

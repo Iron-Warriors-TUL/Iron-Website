@@ -3,14 +3,21 @@ services:
     image: postgres:17-alpine
     environment:
       POSTGRES_USER: iw_user
-      # Domyślne hasło dev — kontener startuje bez .env. Nadpisz w produkcji.
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-iw_dev_password}
+      # Wymagane — brak wartości przerywa start zamiast używać publicznego hasła.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Ustaw POSTGRES_PASSWORD w .env}
       POSTGRES_DB: ironwarriors
     ports:
       # Baza dostępna tylko na localhost (dev), nie wystawiona publicznie.
       - "127.0.0.1:55432:5432"
     volumes:
       - iw-postgres-data:/var/lib/postgresql/data
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1g
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U iw_user -d ironwarriors"]
       interval: 5s
@@ -25,14 +32,13 @@ services:
     # ADMIN_NAME/ADMIN_EMAIL/ADMIN_PASSWORD trafiają do kontenera wprost z .env.
     # Nie używamy ${ADMIN_EMAIL:-}, bo przy braku zmiennej Compose wstrzykiwałby
     # puste wartości i seed nie odróżniłby „brak” od „ustawione na pusto”.
-    # required: false zachowuje możliwość startu bez .env (środowisko dev).
     env_file:
       - path: .env
         required: false
     environment:
-      DATABASE_URL: postgresql://iw_user:${POSTGRES_PASSWORD:-iw_dev_password}@postgres:5432/ironwarriors
-      # Domyślny sekret dev — kontener startuje bez .env. Nadpisz w produkcji.
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-local-development-secret-change-before-production}
+      DATABASE_URL: postgresql://iw_user:${POSTGRES_PASSWORD:?Ustaw POSTGRES_PASSWORD w .env}@postgres:5432/ironwarriors
+      # Wymagane — brak wartości przerywa start zamiast używać sekretu z repozytorium.
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Ustaw BETTER_AUTH_SECRET w .env}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:3000}
       # Za reverse proxy: zob. MAINTENANCE.md (limit logowania wg adresu klienta).
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
@@ -43,6 +49,19 @@ services:
       - "127.0.0.1:3000:3000"
     volumes:
       - iw-app-uploads:/app/public/uploads
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+      - /app/.next/cache:size=256m,mode=1777
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1g
 
 volumes:
   iw-postgres-data:

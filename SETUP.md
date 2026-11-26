@@ -227,8 +227,8 @@ corepack pnpm build     # 23 strony, WYMAGA bazy
 | `corepack enable` → `EPERM` | Brak uprawnień do katalogu globalnego | Używaj `corepack pnpm ...` (bez `enable`) |
 | `Failed to get session`, `FAILED_TO_GET_SESSION` | Brak lub zły `BETTER_AUTH_SECRET` | Ustaw długi losowy sekret w `.env.local` i zrestartuj serwer |
 | `Ustaw DATABASE_URL w .env.local` | Brak pliku env | Skopiuj `.env.example` → `.env.local` |
-| Prerender przy `build` rzuca błąd DB | Baza nie działa w czasie buildu | Uruchom kontener przed `pnpm build` |
-| Zmiany w CMS nie widać na stronie | Statyczny cache | Zapis formularza woła `revalidatePath`; odśwież stronę / zrestartuj serwer po czystym buildzie |
+| `password authentication failed for user "iw_user"` | Istniejący wolumen bazy ma inne hasło niż `POSTGRES_PASSWORD` w `.env` (hasło z env działa tylko przy pierwszej inicjalizacji) | Zaloguj się do bazy lokalnie i ustaw hasło z `.env` przez `\password iw_user`, albo usuń wolumen bazy (uwaga: kasuje dane) i uruchom ponownie |
+| Zmiany w CMS nie widać na stronie | Cache strony | Zapis formularza woła `revalidatePath`; odśwież stronę |
 
 ---
 

@@ -49,24 +49,68 @@ export default async function AccountEditor({ params }: { params: Promise<{ id: 
             name="password"
             type="password"
             required={isNew}
-            minLength={isNew ? 12 : 0}
+            minLength={12}
             maxLength={128}
-            autoComplete={isNew ? 'new-password' : 'new-password'}
+            autoComplete="new-password"
             className={inputClass}
           />
         </Field>
+        {(!account || account.id !== session.user.id) && (
+          <>
+            <Field
+              label="Twoje hasło"
+              htmlFor="currentPassword"
+              hint="Wymagane przy zmianie hasła lub roli innego konta oraz przy tworzeniu administratora."
+            >
+              <input
+                id="currentPassword"
+                name="currentPassword"
+                type="password"
+                autoComplete="current-password"
+                className={inputClass}
+              />
+            </Field>
+            {session.user.twoFactorEnabled && (
+              <Field label="Twój kod 2FA" htmlFor="currentCode" hint="6 cyfr z aplikacji albo kod zapasowy.">
+                <input id="currentCode" name="currentCode" autoComplete="one-time-code" className={inputClass} />
+              </Field>
+            )}
+          </>
+        )}
       </AdminForm>
       {account && account.id !== session.user.id && account.twoFactorEnabled && (
-        <form action={resetAccountSecurity} className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border p-4">
+        <AdminForm
+          action={resetAccountSecurity}
+          submitLabel="Resetuj 2FA"
+          className="flex flex-col gap-4 rounded-md border border-border p-4"
+        >
           <input type="hidden" name="id" value={account.id} />
           <div>
             <p className="text-sm font-medium">Reset zabezpieczeń</p>
             <p className="text-xs text-muted-foreground">Wyłącz uwierzytelnianie dwuskładnikowe (2FA) tego użytkownika, np. gdy zgubił telefon i kody zapasowe.</p>
           </div>
-          <button type="submit" className="rounded-sm border border-destructive px-4 py-2 text-sm font-bold text-destructive hover:bg-destructive/5">
-            Resetuj 2FA
-          </button>
-        </form>
+          <Field label="Twoje hasło" htmlFor="resetCurrentPassword">
+            <input
+              id="resetCurrentPassword"
+              name="currentPassword"
+              type="password"
+              autoComplete="current-password"
+              required
+              className={inputClass}
+            />
+          </Field>
+          {session.user.twoFactorEnabled && (
+            <Field label="Twój kod 2FA" htmlFor="resetCurrentCode" hint="6 cyfr z aplikacji albo kod zapasowy.">
+              <input
+                id="resetCurrentCode"
+                name="currentCode"
+                autoComplete="one-time-code"
+                required
+                className={inputClass}
+              />
+            </Field>
+          )}
+        </AdminForm>
       )}
     </div>
   )

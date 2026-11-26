@@ -15,7 +15,13 @@ export default async function ContentEntryPage({
 }) {
   const { area, key: rawKey } = await params
   // Next.js nie dekoduje %3A w segmentach trasy, a klucze wpisów zawierają „::”.
-  const key = decodeURIComponent(rawKey)
+  // Malformed percent-encoding nie może wywołać 500.
+  let key: string
+  try {
+    key = decodeURIComponent(rawKey)
+  } catch {
+    notFound()
+  }
   const definition = contentAreaByKey.get(area)
   if (!definition) notFound()
   const session = await requireCmsPage()

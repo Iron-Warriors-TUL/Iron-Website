@@ -1,5 +1,6 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
+import { connection } from 'next/server'
 import { Exo } from 'next/font/google'
 import './globals.css'
 
@@ -41,7 +42,10 @@ export const viewport: Viewport = {
   themeColor: '#171616',
 }
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // Nonce CSP jest generowany per żądanie, więc layout nie może być prerenderowany.
+  await connection()
+
   return (
     <html lang="pl" className={exo.variable}>
       <body className="antialiased">

@@ -1,6 +1,7 @@
 'use client'
 
 import { cn } from '@/lib/utils'
+import { isHttpsUrl, isSafePath } from '@/lib/safe-url'
 
 type BackdropProps = {
   videoId: string
@@ -35,6 +36,7 @@ export function YouTubeBackdrop({ videoId, start, end, poster, className }: Back
   })
   if (start !== undefined) params.set('start', String(start))
   if (end !== undefined) params.set('end', String(end))
+  const safePoster = poster && (isSafePath(poster) || isHttpsUrl(poster)) ? poster : null
 
   return (
     // container-type: size pozwala liczyć wymiary filmu względem sekcji (cqw/cqh), a nie okna:
@@ -44,16 +46,18 @@ export function YouTubeBackdrop({ videoId, start, end, poster, className }: Back
       style={{ containerType: 'size' }}
       aria-hidden="true"
     >
-      {poster && (
+      {safePoster && (
         <div
           className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: `url("${poster}")` }}
+          // JSON.stringify escapuje cudzysłowy, backslashe i nowe linie, więc adres
+          // nie może zamknąć url() i wstrzyknąć dodatkowych deklaracji CSS.
+          style={{ backgroundImage: `url(${JSON.stringify(safePoster)})` }}
         />
       )}
       <iframe
         className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border-0"
         style={{ width: `max(102cqw, ${CONTENT_RATIO * 102}cqh)`, height: `max(${CONTENT_RATIO * 102 * 0.5625}cqh, 57.375cqw)` }}
-        src={`https://www.youtube.com/embed/${videoId}?${params.toString()}`}
+        src={`https://www.youtube.com/embed/${encodeURIComponent(videoId)}?${params.toString()}`}
         title=""
         tabIndex={-1}
         allow="autoplay; encrypted-media; picture-in-picture"
@@ -86,7 +90,7 @@ export function YouTubeEmbed({ videoId, className }: EmbedProps) {
     <div className={cn('relative aspect-video w-full overflow-hidden bg-black', className)}>
       <iframe
         className="absolute inset-0 h-full w-full border-0"
-        src={`https://www.youtube.com/embed/${videoId}?${params.toString()}`}
+        src={`https://www.youtube.com/embed/${encodeURIComponent(videoId)}?${params.toString()}`}
         title="Film Iron Warriors"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         allowFullScreen

@@ -11,6 +11,7 @@ import {
   LayoutDashboard,
   Menu,
   PencilLine,
+  ScrollText,
   Settings,
   Users,
 } from 'lucide-react'
@@ -38,6 +39,10 @@ const groups: { title?: string; links: NavLink[] }[] = [
       { href: `${ADMIN_PATH}/bolidy`, label: 'Bolidy', icon: Car },
       { href: `${ADMIN_PATH}/projekty`, label: 'Projekty', icon: FolderKanban },
     ],
+  },
+  {
+    title: 'Administracja',
+    links: [{ href: `${ADMIN_PATH}/dziennik`, label: 'Dziennik zdarzeń', icon: ScrollText, adminOnly: true }],
   },
   { title: 'Pomoc', links: [{ href: `${ADMIN_PATH}/instrukcja`, label: 'Instrukcja obsługi', icon: BookOpen }] },
 ]

@@ -9,14 +9,14 @@ Poniżej minimum, które warto ustawić raz i potem tylko pilnować.
 2. Utwórz plik `.env` obok `docker-compose.yml` (nie commituj go):
 
    ```env
-   POSTGRES_PASSWORD=<openssl rand -base64 24>
+   POSTGRES_PASSWORD=<openssl rand -hex 24>
    BETTER_AUTH_SECRET=<openssl rand -base64 48>
    BETTER_AUTH_URL=https://ironwarriors.p.lodz.pl   # dokładny publiczny adres strony
    ADMIN_EMAIL=...
    ADMIN_PASSWORD=<min. 12 znaków, tylko na pierwsze uruchomienie>
    ```
 
-   Aplikacja z adresem `https://` **nie wystartuje** z domyślnym lub krótszym niż 32 znaki sekretem.
+   W produkcji aplikacja **nie wystartuje** z pustym, domyślnym lub krótszym niż 32 znaki sekretem.
    Docker czyta wyłącznie `.env` obok `docker-compose.yml`; `.env.local` służy tylko do pracy lokalnej.
 3. `docker compose up -d --build`. Migracje i seed (tylko pustej bazy) uruchamiają się same,
    a potem idempotentny bootstrap admina z `ADMIN_*`.

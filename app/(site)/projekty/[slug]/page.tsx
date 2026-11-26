@@ -28,11 +28,6 @@ async function getCategories() {
   }))
 }
 
-export async function generateStaticParams() {
-  const categories = await getCategories()
-  return categories.map((c) => ({ slug: c.slug }))
-}
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
   const category = (await getCategories()).find((c) => c.slug === slug)
