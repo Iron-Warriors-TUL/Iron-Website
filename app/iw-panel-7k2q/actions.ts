@@ -92,6 +92,24 @@ async function requestMeta() {
   }
 }
 
+/** Skrót: wpis do dziennika z aktorem i metadanymi żądania. */
+async function auditAction(
+  session: { user: { id: string } },
+  action: string,
+  targetType: string,
+  targetId: string | number,
+  details?: Record<string, unknown>,
+) {
+  await writeAuditLog(pool, {
+    actorId: session.user.id,
+    action,
+    targetType,
+    targetId: String(targetId),
+    details,
+    ...(await requestMeta()),
+  })
+}
+
 /** Wymaga ponownego potwierdzenia hasła i (jeśli włączone) kodu 2FA aktualnego administratora. */
 async function verifyAdminReauth(fd: FormData, session: AdminSession) {
   const password = s(fd, 'currentPassword')
@@ -164,7 +182,7 @@ async function nextNavSortOrder(parentId: number | null, excludeId: number) {
 }
 
 export async function saveNavItem(_: FormState, fd: FormData): Promise<FormState> {
-  await requireAdmin()
+  const session = await requireAdmin()
   try {
     const data = navSchema.parse({
       label: s(fd, 'label'),
@@ -183,11 +201,17 @@ export async function saveNavItem(_: FormState, fd: FormData): Promise<FormState
       ? int.parse(rawSortOrder)
       : await nextNavSortOrder(data.parentId, itemId)
 
+    let savedId = itemId
     if (rawId) {
       await db.update(navItems).set({ ...data, sortOrder }).where(eq(navItems.id, itemId))
     } else {
-      await db.insert(navItems).values({ ...data, sortOrder })
+      const [created] = await db.insert(navItems).values({ ...data, sortOrder }).returning({ id: navItems.id })
+      savedId = created.id
     }
+    await auditAction(session, rawId ? 'nav.update' : 'nav.create', 'navigation', savedId, {
+      label: data.label,
+      href: data.href,
+    })
   } catch (e) {
     return fail(e)
   }
@@ -196,12 +220,13 @@ export async function saveNavItem(_: FormState, fd: FormData): Promise<FormState
 }
 
 export async function moveNavItem(fd: FormData) {
-  await requireAdmin()
+  const session = await requireAdmin()
   const itemId = id.parse(s(fd, 'id'))
   const items = await db
     .select({ id: navItems.id, parentId: navItems.parentId, sortOrder: navItems.sortOrder })
     .from(navItems)
-  const reordered = reorderNavSiblings(items, itemId, s(fd, 'direction') === 'up' ? 'up' : 'down')
+  const direction = s(fd, 'direction') === 'up' ? 'up' : 'down'
+  const reordered = reorderNavSiblings(items, itemId, direction)
   if (!reordered) return
 
   await db.transaction(async (tx) => {
@@ -209,22 +234,28 @@ export async function moveNavItem(fd: FormData) {
       await tx.update(navItems).set({ sortOrder: item.sortOrder }).where(eq(navItems.id, item.id))
     }
   })
+  await auditAction(session, 'nav.move', 'navigation', itemId, { direction })
   refresh()
 }
 
 export async function deleteNavItem(fd: FormData) {
-  await requireAdmin()
+  const session = await requireAdmin()
   const itemId = id.parse(s(fd, 'id'))
   const allItems = await db.select({ id: navItems.id, parentId: navItems.parentId }).from(navItems)
+  const [target] = await db.select({ label: navItems.label }).from(navItems).where(eq(navItems.id, itemId)).limit(1)
   const idsToDelete = collectDescendantIds(allItems, itemId)
   await db.delete(navItems).where(inArray(navItems.id, idsToDelete))
+  await auditAction(session, 'nav.delete', 'navigation', itemId, {
+    label: target?.label,
+    items: idsToDelete.length,
+  })
   refresh()
 }
 
 /* ---------- Blog posts ---------- */
 
 export async function savePost(_: FormState, fd: FormData): Promise<FormState> {
-  await requireCms()
+  const session = await requireCms()
   try {
     const data = {
       ...postSchema.parse({
@@ -239,11 +270,19 @@ export async function savePost(_: FormState, fd: FormData): Promise<FormState> {
       blocks: parseBlocks(s(fd, 'blocks')),
     }
     const rawId = s(fd, 'id')
+    let savedId: number
     if (rawId) {
-      await db.update(posts).set({ ...data, updatedAt: new Date() }).where(eq(posts.id, id.parse(rawId)))
+      savedId = id.parse(rawId)
+      await db.update(posts).set({ ...data, updatedAt: new Date() }).where(eq(posts.id, savedId))
     } else {
-      await db.insert(posts).values(data)
+      const [created] = await db.insert(posts).values(data).returning({ id: posts.id })
+      savedId = created.id
     }
+    await auditAction(session, rawId ? 'post.update' : 'post.create', 'post', savedId, {
+      title: data.title,
+      slug: data.slug,
+      published: data.published,
+    })
   } catch (e) {
     return fail(e)
   }
@@ -252,8 +291,11 @@ export async function savePost(_: FormState, fd: FormData): Promise<FormState> {
 }
 
 export async function deletePost(fd: FormData) {
-  await requireCms()
-  await db.delete(posts).where(eq(posts.id, id.parse(s(fd, 'id'))))
+  const session = await requireCms()
+  const postId = id.parse(s(fd, 'id'))
+  const [target] = await db.select({ title: posts.title, slug: posts.slug }).from(posts).where(eq(posts.id, postId)).limit(1)
+  await db.delete(posts).where(eq(posts.id, postId))
+  await auditAction(session, 'post.delete', 'post', postId, { title: target?.title, slug: target?.slug })
   refresh()
   redirect(`${ADMIN_PATH}/blog`)
 }
@@ -261,7 +303,7 @@ export async function deletePost(fd: FormData) {
 /* ---------- Vehicles ---------- */
 
 export async function saveVehicle(_: FormState, fd: FormData): Promise<FormState> {
-  await requireCms()
+  const session = await requireCms()
   try {
     const blocks = parseBlocks(s(fd, 'blocks'))
     const textBlock = blocks.find((block) => block.type === 'text' && typeof block.text === 'string')
@@ -284,11 +326,18 @@ export async function saveVehicle(_: FormState, fd: FormData): Promise<FormState
       blocks,
     }
     const rawId = s(fd, 'id')
+    let savedId: number
     if (rawId) {
-      await db.update(vehicles).set({ ...data, updatedAt: new Date() }).where(eq(vehicles.id, id.parse(rawId)))
+      savedId = id.parse(rawId)
+      await db.update(vehicles).set({ ...data, updatedAt: new Date() }).where(eq(vehicles.id, savedId))
     } else {
-      await db.insert(vehicles).values(data)
+      const [created] = await db.insert(vehicles).values(data).returning({ id: vehicles.id })
+      savedId = created.id
     }
+    await auditAction(session, rawId ? 'vehicle.update' : 'vehicle.create', 'vehicle', savedId, {
+      name: data.name,
+      slug: data.slug,
+    })
   } catch (e) {
     return fail(e)
   }
@@ -297,8 +346,15 @@ export async function saveVehicle(_: FormState, fd: FormData): Promise<FormState
 }
 
 export async function deleteVehicle(fd: FormData) {
-  await requireCms()
-  await db.delete(vehicles).where(eq(vehicles.id, id.parse(s(fd, 'id'))))
+  const session = await requireCms()
+  const vehicleId = id.parse(s(fd, 'id'))
+  const [target] = await db
+    .select({ name: vehicles.name, slug: vehicles.slug })
+    .from(vehicles)
+    .where(eq(vehicles.id, vehicleId))
+    .limit(1)
+  await db.delete(vehicles).where(eq(vehicles.id, vehicleId))
+  await auditAction(session, 'vehicle.delete', 'vehicle', vehicleId, { name: target?.name, slug: target?.slug })
   refresh()
   redirect(`${ADMIN_PATH}/bolidy`)
 }
@@ -306,7 +362,7 @@ export async function deleteVehicle(fd: FormData) {
 /* ---------- Projects ---------- */
 
 export async function saveProject(_: FormState, fd: FormData): Promise<FormState> {
-  await requireCms()
+  const session = await requireCms()
   try {
     const data = {
       ...projectSchema.parse({
@@ -328,11 +384,18 @@ export async function saveProject(_: FormState, fd: FormData): Promise<FormState
       blocks: parseBlocks(s(fd, 'blocks')),
     }
     const rawId = s(fd, 'id')
+    let savedId: number
     if (rawId) {
-      await db.update(projects).set({ ...data, updatedAt: new Date() }).where(eq(projects.id, id.parse(rawId)))
+      savedId = id.parse(rawId)
+      await db.update(projects).set({ ...data, updatedAt: new Date() }).where(eq(projects.id, savedId))
     } else {
-      await db.insert(projects).values(data)
+      const [created] = await db.insert(projects).values(data).returning({ id: projects.id })
+      savedId = created.id
     }
+    await auditAction(session, rawId ? 'project.update' : 'project.create', 'project', savedId, {
+      title: data.title,
+      category: data.category,
+    })
   } catch (e) {
     return fail(e)
   }
@@ -341,8 +404,18 @@ export async function saveProject(_: FormState, fd: FormData): Promise<FormState
 }
 
 export async function deleteProject(fd: FormData) {
-  await requireCms()
-  await db.delete(projects).where(eq(projects.id, id.parse(s(fd, 'id'))))
+  const session = await requireCms()
+  const projectId = id.parse(s(fd, 'id'))
+  const [target] = await db
+    .select({ title: projects.title, category: projects.category })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1)
+  await db.delete(projects).where(eq(projects.id, projectId))
+  await auditAction(session, 'project.delete', 'project', projectId, {
+    title: target?.title,
+    category: target?.category,
+  })
   refresh()
   redirect(`${ADMIN_PATH}/projekty`)
 }
@@ -370,21 +443,25 @@ export async function saveContent(_: FormState, fd: FormData): Promise<FormState
     for (const field of area.fields) data[field.name] = parseFieldValue(field, fd)
     const now = new Date()
     const [existing] = await db
-      .select({ id: siteContent.id })
+      .select({ id: siteContent.id, data: siteContent.data })
       .from(siteContent)
       .where(and(eq(siteContent.area, areaKey), eq(siteContent.entryKey, entryKey)))
       .limit(1)
+    const changedFields = existing
+      ? area.fields
+          .filter((field) => JSON.stringify(existing.data?.[field.name] ?? null) !== JSON.stringify(data[field.name] ?? null))
+          .map((field) => field.label)
+      : []
     if (existing) {
       await db.update(siteContent).set({ data, updatedAt: now }).where(eq(siteContent.id, existing.id))
     } else {
       await db.insert(siteContent).values({ area: areaKey, entryKey, data })
     }
-    await writeAuditLog(pool, {
-      actorId: session.user.id,
-      action: 'content.save',
-      targetType: 'content',
-      targetId: `${areaKey}/${entryKey}`,
-      details: { area: areaKey, key: entryKey },
+    await auditAction(session, 'content.save', 'content', `${areaKey}/${entryKey}`, {
+      area: areaKey,
+      key: entryKey,
+      created: !existing,
+      changedFields,
     })
   } catch (e) {
     if (e instanceof ContentFieldError) return { error: e.message }
@@ -412,12 +489,10 @@ export async function addContentEntry(fd: FormData) {
     .insert(siteContent)
     .values({ area: areaKey, entryKey, data: name ? { title: name } : {} })
     .onConflictDoNothing()
-  await writeAuditLog(pool, {
-    actorId: session.user.id,
-    action: 'content.create',
-    targetType: 'content',
-    targetId: `${areaKey}/${entryKey}`,
-    details: { area: areaKey, key: entryKey },
+  await auditAction(session, 'content.create', 'content', `${areaKey}/${entryKey}`, {
+    area: areaKey,
+    key: entryKey,
+    name,
   })
   refresh()
   redirect(`${ADMIN_PATH}/tresc/${areaKey}/${encodeURIComponent(entryKey)}`)
@@ -431,12 +506,9 @@ export async function deleteContentEntry(fd: FormData) {
   await db
     .delete(siteContent)
     .where(and(eq(siteContent.area, areaKey), eq(siteContent.entryKey, entryKey)))
-  await writeAuditLog(pool, {
-    actorId: session.user.id,
-    action: 'content.delete',
-    targetType: 'content',
-    targetId: `${areaKey}/${entryKey}`,
-    details: { area: areaKey, key: entryKey },
+  await auditAction(session, 'content.delete', 'content', `${areaKey}/${entryKey}`, {
+    area: areaKey,
+    key: entryKey,
   })
   refresh()
 }
