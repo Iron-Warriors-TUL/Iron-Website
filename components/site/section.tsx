@@ -3,22 +3,9 @@ import { cn } from '@/lib/utils'
 import { parseInlineContent } from '@/lib/inline-content'
 import { AnimatedNumber } from './animated-number'
 import { Carousel, type CarouselProps } from './carousel'
-import { FillImage, FixedImage } from './smart-image'
+import { FillImage } from './smart-image'
 import { YouTubeBackdrop } from './youtube-video'
 import { getContent } from '@/lib/content'
-
-export function PageHeader({ title, subtitle, image }: { title: string; subtitle?: string; image?: string }) {
-  return (
-    <section className="relative isolate flex min-h-72 items-center overflow-hidden bg-header">
-      <FillImage src={image ?? '/images/eco-arrow-3-3.jpg'} alt="" priority sizes="100vw" zIndex={-10} className="opacity-40" />
-      <div className="absolute inset-0 -z-10 bg-white/92" />
-      <div className="container-iw py-14">
-        <h1 data-reveal className="text-balance text-4xl font-semibold uppercase text-heading md:text-[59px] md:leading-[59px]">{title}</h1>
-        {subtitle && <p data-reveal className="mt-4 max-w-3xl text-pretty text-[15px] leading-[25.2px] text-black">{subtitle}</p>}
-      </div>
-    </section>
-  )
-}
 
 export function Paragraphs({ text, className }: { text: string; className?: string }) {
   return (
@@ -127,30 +114,5 @@ export function Gallery({ images, alt, effect = 'fade', className, imageClassNam
       showArrows={showArrows}
       forceControls={forceControls}
     />
-  )
-}
-
-export function MemberGrid({ members }: { members: { name: string; role?: string; photo?: string }[] }) {
-  return (
-    <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-      {members.map((member) => (
-        <div key={member.name} data-reveal className="flex flex-col items-center gap-3 text-center">
-          <div className="relative aspect-square w-full overflow-hidden rounded-full bg-muted">
-            <FixedImage
-              src={member.photo ?? '/images/avatar-placeholder.webp'}
-              alt={member.name}
-              width={300}
-              height={300}
-              sizes="(min-width: 768px) 16vw, 45vw"
-              className="h-full w-full object-cover"
-            />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-heading">{member.name}</p>
-            {member.role && <p className="mt-1 text-xs leading-snug text-foreground">{member.role}</p>}
-          </div>
-        </div>
-      ))}
-    </div>
   )
 }
