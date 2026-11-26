@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { BookOpen, CalendarPlus, Car, FilePlus2, FolderPlus, Handshake, PencilLine } from 'lucide-react'
+import { BookOpen, CalendarPlus, Car, FilePlus2, FolderPlus, Handshake, PencilLine, UserCog } from 'lucide-react'
 import { count } from 'drizzle-orm'
 import { db } from '@/lib/db'
 import { navItems, posts, projects, siteContent, vehicles } from '@/lib/db/schema'
@@ -33,6 +33,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     { label: 'Dodaj bolid', href: `${ADMIN_PATH}/bolidy/nowy`, icon: Car },
     { label: 'Dodaj projekt', href: `${ADMIN_PATH}/projekty/nowy`, icon: FolderPlus },
     ...(isAdmin ? [{ label: 'Nowy sezon', href: `${ADMIN_PATH}/partnerzy#nowy-sezon`, icon: CalendarPlus }] : []),
+    ...(isAdmin ? [{ label: 'Konta i role', href: `${ADMIN_PATH}/konta`, icon: UserCog }] : []),
     { label: 'Instrukcja obsługi', href: `${ADMIN_PATH}/instrukcja`, icon: BookOpen },
   ]
   return (

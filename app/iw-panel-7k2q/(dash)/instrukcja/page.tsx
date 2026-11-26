@@ -45,9 +45,15 @@ const guides: Guide[] = [
     steps: ['Menu → Menu strony.', 'Dodaj pozycję lub podpozycję.', '↑ ↓ zmieniają kolejność.'],
   },
   {
-    title: 'Konto, 2FA i role',
+    title: 'Moje konto i 2FA',
     href: `${ADMIN_PATH}/ustawienia`,
-    steps: ['Kliknij zębatkę na dole menu.', 'Bezpieczeństwo: włącz kod z aplikacji w telefonie.', 'Administrator dodaje konta i nadaje role.'],
+    steps: ['Kliknij zębatkę na dole menu.', 'Sprawdź swoje dane i rolę.', 'Bezpieczeństwo: włącz kod z aplikacji w telefonie.'],
+  },
+  {
+    title: 'Konta i role zespołu',
+    href: `${ADMIN_PATH}/konta`,
+    adminOnly: true,
+    steps: ['Menu → Administracja → Konta i role.', 'Kliknij „Dodaj konto” lub wybierz istniejące.', 'Ustaw rolę, zresetuj hasło lub 2FA.'],
   },
 ]
 

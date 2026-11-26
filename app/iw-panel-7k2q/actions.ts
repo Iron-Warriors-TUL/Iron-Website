@@ -427,7 +427,7 @@ export async function saveAccount(_: FormState, fd: FormData): Promise<FormState
   }
 
   refresh()
-  redirect(`${ADMIN_PATH}/ustawienia#konta`)
+  redirect(`${ADMIN_PATH}/konta`)
   return { ok: true }
 }
 
@@ -462,7 +462,7 @@ export async function deleteAccount(fd: FormData) {
     client.release()
   }
   refresh()
-  redirect(`${ADMIN_PATH}/ustawienia#konta`)
+  redirect(`${ADMIN_PATH}/konta`)
 }
 
 export async function resetAccountSecurity(fd: FormData) {
