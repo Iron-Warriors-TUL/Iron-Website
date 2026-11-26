@@ -13,6 +13,7 @@ import {
   PencilLine,
   ScrollText,
   Settings,
+  UserCog,
   Users,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -29,7 +30,6 @@ const groups: { title?: string; links: NavLink[] }[] = [
       { href: `${ADMIN_PATH}/tresc`, label: 'Teksty i zdjęcia', icon: PencilLine },
       { href: `${ADMIN_PATH}/partnerzy`, label: 'Partnerzy', icon: Handshake },
       { href: `${ADMIN_PATH}/tresc/people/main`, label: 'Osoby', icon: Users },
-      { href: `${ADMIN_PATH}/nawigacja`, label: 'Menu strony', icon: Menu, adminOnly: true },
     ],
   },
   {
@@ -42,7 +42,11 @@ const groups: { title?: string; links: NavLink[] }[] = [
   },
   {
     title: 'Administracja',
-    links: [{ href: `${ADMIN_PATH}/dziennik`, label: 'Dziennik zdarzeń', icon: ScrollText, adminOnly: true }],
+    links: [
+      { href: `${ADMIN_PATH}/konta`, label: 'Konta i role', icon: UserCog, adminOnly: true },
+      { href: `${ADMIN_PATH}/dziennik`, label: 'Dziennik zdarzeń', icon: ScrollText, adminOnly: true },
+      { href: `${ADMIN_PATH}/nawigacja`, label: 'Menu strony', icon: Menu, adminOnly: true },
+    ],
   },
   { title: 'Pomoc', links: [{ href: `${ADMIN_PATH}/instrukcja`, label: 'Instrukcja obsługi', icon: BookOpen }] },
 ]
@@ -103,7 +107,7 @@ export function UserTile({ name, email, roleLabel }: { name: string; email: stri
       .map((part) => part[0]?.toUpperCase())
       .join('') || email[0]?.toUpperCase()
   const settingsHref = `${ADMIN_PATH}/ustawienia`
-  const current = pathname.startsWith(settingsHref) || pathname.startsWith(`${ADMIN_PATH}/konta`)
+  const current = pathname.startsWith(settingsHref)
 
   return (
     <div className="flex items-center gap-3 rounded-md border border-border bg-background p-3 md:flex-col md:gap-2 md:p-4 md:text-center">

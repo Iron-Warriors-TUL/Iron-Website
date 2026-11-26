@@ -24,7 +24,9 @@ Poniżej minimum, które warto ustawić raz i potem tylko pilnować.
    włącz 2FA i usuń `ADMIN_PASSWORD` (a najlepiej całe `ADMIN_*`) z `.env` — konto zostaje w bazie,
    a kolejne starty pominą bootstrap.
 
-Kolejne konta dodawaj z wnętrza kontenera (rejestracja w przeglądarce jest wyłączona):
+Kolejne konta dodawaj w panelu (**Administracja → Konta i role**). Opis ról, resetu haseł
+i 2FA znajduje się w [KONTA-I-ROLE.md](KONTA-I-ROLE.md). Rejestracja w przeglądarce jest
+wyłączona, a CLI służy do bootstrapu, automatyzacji i odzyskiwania dostępu:
 
 ```bash
 docker compose exec -T app node scripts/create-account.mjs \

@@ -49,8 +49,6 @@ export type ContentArea = {
 }
 
 const str = (v: unknown) => (typeof v === 'string' ? v : '')
-const arr = (v: unknown): unknown[] => (Array.isArray(v) ? v : [])
-const bool = (v: unknown) => v === true || v === 'true'
 
 /* ---------- Biblioteki: elementy powtarzalne zdefiniowane raz ---------- */
 
@@ -542,16 +540,6 @@ export function defaultKeys(areaKey: string): string[] {
   return contentAreaByKey.get(areaKey)?.keys ?? []
 }
 
-export function linesToData(value: Data): Data {
-  const out: Data = { ...value }
-  for (const key of Object.keys(out)) {
-    if (Array.isArray(out[key]) && Array.isArray((out[key] as unknown[])[0])) {
-      out[key] = (out[key] as unknown[][]).map((row) => row.map((cell) => String(str(cell))))
-    }
-  }
-  return out
-}
-
 export function asLines(value: unknown, columns: number): string[][] {
   if (!Array.isArray(value)) return []
   return value.slice(0, 200).map((row) => {
@@ -566,4 +554,3 @@ export function linesToString(value: unknown, columns: number): string {
     .join('\n')
 }
 
-export { arr, bool, str }
