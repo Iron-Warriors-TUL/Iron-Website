@@ -153,7 +153,9 @@ ADMIN_NAME=Administrator
 ```
 
 Bez `ADMIN_EMAIL` i `ADMIN_PASSWORD` seed nie utworzy żadnego konta.
-Rejestracja nowych kont w przeglądarce jest zablokowana, więc kolejne konta dodaj przez CLI:
+Rejestracja nowych kont w przeglądarce jest zablokowana. Kolejne konta dodawaj w panelu
+(**Administracja → Konta i role**); pełny opis: [KONTA-I-ROLE.md](KONTA-I-ROLE.md).
+CLI pozostaje do bootstrapu, automatyzacji i odzyskiwania dostępu:
 
 ```bash
 # lokalnie (czyta .env.local / .env)
@@ -180,9 +182,11 @@ corepack pnpm start
 ## 8. Co można edytować w panelu
 
 - **Treść strony** — 17 obszarów: strona główna, nagłówek, stopka, CTA, bolidy (lista + detale), rekrutacja + działy, kontakt, zostań partnerem, zespoły (roczniki + sekcje), partnerzy (roczniki + grupy), osoby, katalog partnerów, ustawienia.
-- **Nawigacja (navbar)** — etykiety, linki, zagnieżdżenie, kolejność, przycisk CTA.
+- **Nawigacja (navbar)** — etykiety, linki, zagnieżdżenie, kolejność, przycisk CTA (tylko administrator).
 - **Osoby** — 121 kart; zmiana aktualizuje wszystkie składy.
 - **Blog / Bolidy / Projekty** — wpisy i dane dodatkowe.
+- **Konta i role** — tylko administrator: dodawanie i usuwanie kont, zmiana ról, reset haseł
+  i 2FA innych osób. Szczegóły: [KONTA-I-ROLE.md](KONTA-I-ROLE.md).
 
 Flow: wybierasz obszar → listę wpisów → formularz z etykietami → jeden przycisk „Zapisz treść". Przywrócenie domyślnej wartości usuwa nadpisanie z bazy.
 
@@ -212,7 +216,7 @@ Plik `backup.sql` nie jest w repozytorium — trzymaj go poza nim.
 ```bash
 corepack pnpm typecheck
 corepack pnpm lint
-corepack pnpm test      # 13 testów
+corepack pnpm test      # wszystkie testy jednostkowe
 corepack pnpm build     # 23 strony, WYMAGA bazy
 ```
 
@@ -236,7 +240,7 @@ corepack pnpm build     # 23 strony, WYMAGA bazy
 
 ```
 app/(site)/                  strony publiczne (główna, bolidy, zespół, partnerzy, …)
-app/iw-panel-7k2q/(dash)/    panel CMS (tresc/, nawigacja, blog, bolidy, projekty)
+app/iw-panel-7k2q/(dash)/    panel CMS (tresc/, konta/, nawigacja, blog, bolidy, projekty, ustawienia)
 components/site/             navbar, stopka, galerie, film YouTube, obrazy
 components/admin/            formularze panelu
 lib/content-registry.ts      źródło prawdy: 17 obszarów, pola formularzy, domyślne treści
